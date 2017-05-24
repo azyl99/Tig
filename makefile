@@ -50,4 +50,4 @@ util.o: util.c util.h
 	cc -g -c util.c
 
 clean: 
-	rm -f a.exe *.o y.*
+	rm -f a.exe *.o y.* lex.yy.c

@@ -1,3 +1,4 @@
 *.o
 y.*
 a.exe
+lex.yy.c
