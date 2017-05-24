@@ -14,10 +14,14 @@ let
 	var haha : node := nil
 	var li := list{head=1, tail=nil}
 	var mytree := tree{key=1+2, children=nil}
+	
+	type intArray = array of int
+	var row := intArray [1] of 0
 in(
 	1;
 	haha := node{name="zyl", age=19};
 	li := list{head=2, tail = li};
 	mytree := tree{key=x, children=li};
 	mytree := tree{key=x, children=nil}
+	
 )end
