@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
  
  S_table base_tenv = E_base_tenv();
  S_table base_venv = E_base_venv();
- transExp(base_venv, base_tenv, a_exp);
+ transExp(Tr_outermost(), base_venv, base_tenv, a_exp);
  
  return 0;
 }

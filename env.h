@@ -1,18 +1,20 @@
 
 /*  */
+#include "translate.h"
+#include "temp.h"
 
 typedef struct E_enventry_ *E_enventry;
 
 struct E_enventry_ {
 	enum { E_varEntry, E_funEntry } kind;
-	union {	struct { Ty_ty ty; } var;
-			struct { Ty_tyList formals; Ty_ty result; } fun; 
+	union {	struct { Tr_access access; Ty_ty ty; } var;
+			struct { Tr_level level; Temp_label label; Ty_tyList formals; Ty_ty result; } fun; 
 			} u;
 };
 
 // 生成预定义的变量和函数
-E_enventry E_VarEntry(Ty_ty ty);
-E_enventry E_FunEntry(Ty_tyList formals, Ty_ty result);
+E_enventry E_VarEntry(Tr_access access, Ty_ty ty);
+E_enventry E_FunEntry(Tr_level level, Temp_label label, Ty_tyList formals, Ty_ty result);
 
 // 生成预定义type表和value表的函数
 S_table E_base_tenv(void);
