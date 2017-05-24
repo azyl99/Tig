@@ -1,0 +1,190 @@
+%{
+#include <stdio.h>
+#include "util.h"
+#include "errormsg.h"
+#include "table.h" 
+#include "symbol.h" 
+#include "absyn.h"
+
+int yylex(void); /* function prototype */
+
+A_exp absyn_root;
+
+void yyerror(char *s)
+{
+ EM_error(EM_tokPos, "%s", s);
+}
+%}
+
+
+%union {
+	int pos;
+	int ival;
+	string sval;
+	A_var var;
+	A_exp exp;
+	A_expList expList;
+	A_dec dec;
+	A_decList decList;
+	A_namety namety;
+	A_nametyList nametyList;
+	A_fundec fundec;
+	A_fundecList fundecList;
+	S_symbol symbol;
+	A_ty type;
+	A_field field;
+	A_fieldList fieldList;
+	A_efield efield;
+	A_efieldList efieldList;
+	
+	/* et cetera */
+}
+
+%token <sval> ID STRING
+%token <ival> INT
+
+%token 
+  COMMA COLON SEMICOLON LPAREN RPAREN LBRACK RBRACK 
+  LBRACE RBRACE DOT 
+  PLUS MINUS TIMES DIVIDE EQ NEQ LT LE GT GE
+  AND OR ASSIGN
+  ARRAY IF THEN ELSE WHILE FOR TO DO LET IN END OF 
+  BREAK NIL
+  FUNCTION VAR TYPE 
+
+%type <var> lvalue simpleVar
+%type <exp> program exp opexp expseq
+%type <expList> seqexp expList
+%type <decList> decs decs_tail
+%type <dec> dec
+%type <namety> namety
+%type <nametyList> nametyList
+//%type <symbol> id
+%type <type> type
+%type <field> typefield
+%type <fieldList> typefields
+%type <fundec> fundec
+%type <fundecList> fundecList
+%type <efield> efield
+%type <efieldList> efieldList
+/* et cetera */
+
+
+//优先级，低->高
+%nonassoc ASSIGN	/*assign语句没有值，所以不能连等，所以没有结合性*/
+%left OR
+%left AND
+%nonassoc EQ NEQ LT LE GT GE	/*不能结合*/
+%left PLUS MINUS
+%left TIMES DIVIDE
+%left NEG	/*负号*/
+%left STATEMENT	/*if,while等语句*/
+
+%start program
+
+%%
+
+program:	  exp								{absyn_root=$1;}
+							
+exp:		  simpleVar							{$$ = A_VarExp(EM_tokPos, $1);}
+			| lvalue							{$$ = A_VarExp(EM_tokPos, $1);}
+			// 赋值表达式
+			| simpleVar ASSIGN exp				{$$ = A_AssignExp(EM_tokPos, $1, $3);}
+			| lvalue ASSIGN exp					{$$ = A_AssignExp(EM_tokPos, $1, $3);}
+			// 算术表达式
+			| opexp								{$$ = $1;}
+			// | /* 无值表达式 */
+			// ....?
+			| NIL								{$$ = A_NilExp(EM_tokPos);}
+			| LPAREN exp seqexp RPAREN			{$$ = A_SeqExp(EM_tokPos, A_ExpList($2, $3));}//要求seqexp有至少两个exp
+/*无值*/	| LPAREN RPAREN						{$$ = A_VoidExp(EM_tokPos);}	//不知道该赋什么值给$$，NULL不可以(pr_exp要求的)
+			| INT								{$$ = A_IntExp(EM_tokPos, $1);}
+			| STRING							{$$ = A_StringExp(EM_tokPos, $1);}
+			// LET语句
+			| LET decs IN expseq END			{$$ = A_LetExp(EM_tokPos, $2, $4);}
+			| LET decs IN END					{$$ = A_LetExp(EM_tokPos, $2, A_NilExp(EM_tokPos));}
+			// 函数调用		
+			| ID LPAREN RPAREN					{$$ = A_CallExp(EM_tokPos, S_Symbol($1), NULL);}// 不能合起来写的原因是expList的定义决定它至少有一个exp，之所以这么定义是为了减少冲突（因为空的exp适用于太多的list类型）
+			| ID LPAREN expList RPAREN			{$$ = A_CallExp(EM_tokPos, S_Symbol($1), $3);}
+			// 记录创建
+			| ID LBRACE RBRACE					{$$ = A_RecordExp(EM_tokPos, S_Symbol($1), NULL);}
+			| ID LBRACE efieldList RBRACE		{$$ = A_RecordExp(EM_tokPos, S_Symbol($1), $3);}
+			// 数组创建，和左值 lvalue LBRACK exp RBRACK 冲突！因为只能超前查看一个，所以无法判断！
+			| simpleVar LBRACK exp RBRACK OF exp	%prec STATEMENT {$$ = A_ArrayExp(EM_tokPos, $1->u.simple, $3, $6);}
+			// 语句，定义优先级是因为：末端的exp遇到+-*/【语义上是错的，文法上是对的： _if 1 else 2_ +3 】
+			| IF exp THEN exp 					%prec STATEMENT	{$$ = A_IfExp(EM_tokPos, $2, $4, NULL);}//if (v->u.iff.elsee)
+			| IF exp THEN exp ELSE exp			%prec STATEMENT	{$$ = A_IfExp(EM_tokPos, $2, $4, $6);}
+			| WHILE exp DO exp					%prec STATEMENT	{$$ = A_WhileExp(EM_tokPos, $2, $4);}
+			| FOR ID ASSIGN exp TO exp DO exp	%prec STATEMENT	{$$ = A_ForExp(EM_tokPos, S_Symbol($2), $4, $6, $8);}
+			| BREAK								{$$ = A_BreakExp(EM_tokPos);}
+			
+lvalue:		  simpleVar DOT ID					{$$ = A_FieldVar(EM_tokPos, $1, S_Symbol($3));}
+			| lvalue DOT ID						{$$ = A_FieldVar(EM_tokPos, $1, S_Symbol($3));}
+			| simpleVar LBRACK exp RBRACK		{$$ = A_SubscriptVar(EM_tokPos, $1, $3);}		
+			| lvalue LBRACK exp RBRACK			{$$ = A_SubscriptVar(EM_tokPos, $1, $3);}			
+					
+seqexp:		  SEMICOLON exp						{$$ = A_ExpList($2, NULL);}//这么写是为了防止和op->(exp)的冲突
+			| SEMICOLON exp seqexp				{$$ = A_ExpList($2, $3);}
+			
+expseq:		  exp								{$$ = A_SeqExp(EM_tokPos, A_ExpList($1, NULL));}
+			| exp seqexp						{$$ = A_SeqExp(EM_tokPos, A_ExpList($1, $2));}
+		
+expList:	  exp								{$$ = A_ExpList($1, NULL);} 
+			| exp COMMA expList					{$$ = A_ExpList($1, $3);}
+					
+opexp:		  LPAREN exp RPAREN					{$$ = $2;}		// 与"LPAREN expList RPAREN"冲突，bison默认移进，所以优先这一条！
+			| exp PLUS exp						{$$ = A_OpExp(EM_tokPos, A_plusOp, $1, $3);}
+			| exp MINUS exp						{$$ = A_OpExp(EM_tokPos, A_minusOp, $1, $3);}
+			| exp TIMES exp						{$$ = A_OpExp(EM_tokPos, A_timesOp, $1, $3);}
+			| exp DIVIDE exp					{$$ = A_OpExp(EM_tokPos, A_divideOp, $1, $3);}
+			| exp EQ exp						{$$ = A_OpExp(EM_tokPos, A_eqOp, $1, $3);}
+			| exp NEQ exp						{$$ = A_OpExp(EM_tokPos, A_neqOp, $1, $3);}
+			| exp LT exp						{$$ = A_OpExp(EM_tokPos, A_ltOp, $1, $3);}
+			| exp LE exp						{$$ = A_OpExp(EM_tokPos, A_leOp, $1, $3);}
+			| exp GT exp						{$$ = A_OpExp(EM_tokPos, A_gtOp, $1, $3);}
+			| exp GE exp						{$$ = A_OpExp(EM_tokPos, A_geOp, $1, $3);}
+			| exp AND exp						{$$ = A_OpExp(EM_tokPos, A_andOp, $1, $3);}
+			| exp OR exp						{$$ = A_OpExp(EM_tokPos, A_orOp, $1, $3);}
+			| MINUS exp	%prec NEG				{$$ = A_OpExp(EM_tokPos, A_minusOp, A_IntExp(EM_tokPos, 0), $2);}
+			
+decs:		dec decs_tail						{$$ = A_DecList($1, $2);}
+
+decs_tail:	  /* empty */						{$$ = NULL;}
+			| dec decs_tail						{$$ = A_DecList($1, $2);}
+
+dec:		  nametyList						{$$ = A_TypeDec(EM_tokPos, $1);}//tydec
+			| VAR ID ASSIGN exp					{$$ = A_VarDec(EM_tokPos, S_Symbol($2), NULL, $4);}	//vardec
+			| VAR ID COLON ID ASSIGN exp		{$$ = A_VarDec(EM_tokPos, S_Symbol($2), S_Symbol($4), $6);}	//vardec
+			| fundecList						{$$ = A_FunctionDec(EM_tokPos, $1);}	  
+			
+nametyList:	  namety /*单条type声明*/			{$$ = A_NametyList($1, NULL);}// 移进/归约冲突，这一条是归约，下一条是移进
+			| namety nametyList					{$$ = A_NametyList($1, $2);}
+		
+namety:		  TYPE ID EQ type					{$$ = A_Namety(S_Symbol($2), $4);}
+		
+simpleVar:	  ID								{$$ = A_SimpleVar(EM_tokPos, S_Symbol($1));}
+		
+type:		  ID								{$$ = A_NameTy(EM_tokPos, S_Symbol($1));}
+			| LBRACE typefields RBRACE			{$$ = A_RecordTy(EM_tokPos, $2);}
+			| ARRAY OF ID						{$$ = A_ArrayTy(EM_tokPos, S_Symbol($3));}
+		
+typefields:	  /* empty */						{$$ = NULL;}
+			| typefield							{$$ = A_FieldList($1, NULL);}
+			| typefield COMMA typefields		{$$ = A_FieldList($1, $3);}
+
+typefield:	  ID COLON ID						{$$ = A_Field(EM_tokPos, S_Symbol($1), S_Symbol($3));}
+				
+		
+fundecList:	  fundec 							{$$ = A_FundecList($1, NULL);}// 移进/归约冲突，这一条是归约，下一条是移进
+			| fundec fundecList					{$$ = A_FundecList($1, $2);}
+			
+fundec:		  FUNCTION ID LPAREN typefields RPAREN EQ exp			{$$ = A_Fundec(EM_tokPos, S_Symbol($2), $4, NULL, $7);}
+			| FUNCTION ID LPAREN typefields RPAREN COLON ID EQ exp	{$$ = A_Fundec(EM_tokPos, S_Symbol($2), $4, S_Symbol($7), $9);}
+			
+efieldList:	  efield							{$$ = A_EfieldList($1, NULL);}
+			| efield COMMA efieldList			{$$ = A_EfieldList($1, $3);}
+
+efield:		  ID EQ exp							{$$ = A_Efield(S_Symbol($1), $3);}
+
+
+			
