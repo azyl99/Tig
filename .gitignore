@@ -2,3 +2,4 @@
 y.*
 a.exe
 lex.yy.c
+*.bak
