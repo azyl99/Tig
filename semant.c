@@ -37,7 +37,9 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 			EM_error(v->pos, "undefined variable %s", S_name(v->u.simple));
 			return expTy(NULL, Ty_Int());// 未定义的变量默认是int类型
 		}
-		return expTy(NULL, actual_ty(x->u.var.ty));
+		Tr_access ta = x->u.var.access;
+		Tr_exp te = Tr_simpleVar(ta, level);
+		return expTy(te, actual_ty(x->u.var.ty));
 	}
 	case A_fieldVar: {
 		// a.b   (field.)   var sym
@@ -61,6 +63,7 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 			EM_error(v->pos, "record variable '%s' do not have field named '%s'", S_name(v->u.field.var->u.simple), S_name(v->u.field.sym));
 			return expTy(NULL, Ty_Int());
 		}
+
 		return expTy(NULL, f->ty);
 	}
 	case A_subscriptVar: {
@@ -80,7 +83,10 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 			EM_error(v->pos, "index of array '%s' require integer type", S_name(v->u.subscript.var->u.simple));
 			return expTy(NULL, Ty_Int());// 默认是int类型
 		}
-		return expTy(NULL, ty->u.array);
+		Tr_exp base = Tr_simpleVar(x->u.var.access, level);
+		Tr_exp index = e.exp;
+		Tr_exp te = Tr_subscriptVar(base, index);
+		return expTy(te, ty->u.array);
 	}
 	}
 	// ...
@@ -102,10 +108,12 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		return expTy(NULL, Ty_Void());
 	}
 	case A_intExp: {
-		return expTy(NULL, Ty_Int());
+		Tr_exp te = Tr_intExp(a->u.intt);
+		return expTy(te, Ty_Int());
 	}
 	case A_stringExp: {
-		return expTy(NULL, Ty_String());
+		Tr_exp te = Tr_stringExp(a->u.stringg);
+		return expTy(te, Ty_String());
 	}
 	case A_callExp: {
 	// f(a, b)
@@ -137,14 +145,17 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 				EM_error(a->u.op.left->pos, "integer required for arithmetic operator");
 			if (right.ty->kind != Ty_int)
 				EM_error(a->u.op.right->pos, "integer required for arithmetic operator");
+			Tr_exp te = Tr_opExp(oper, left.exp, right.exp);
 			return expTy(NULL, Ty_Int());
 		}
 		case A_eqOp: case A_neqOp: case A_ltOp: case A_leOp: case A_gtOp: case A_geOp: {
 			if (left.ty->kind != right.ty->kind && !(left.ty->kind == Ty_record && right.ty->kind == Ty_nil) && !(left.ty->kind == Ty_nil && right.ty->kind == Ty_record))
 				EM_error(a->u.op.left->pos, "comparation between incompatible types");
+			Tr_exp te = Tr_op2Exp(oper - 6, left.exp, right.exp);
 			return expTy(NULL, Ty_Int());//返回0或1
 		}
 		case A_andOp: case A_orOp: {
+			Tr_exp te = Tr_opExp(oper, left.exp, right.exp);
 			return expTy(NULL, Ty_Int());//返回0或1
 		}
 		default: assert(0);
@@ -265,7 +276,7 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 	return e;
 }
 
-void transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
+Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 {
 	switch (d->kind) {
 	case A_varDec: {
@@ -280,7 +291,7 @@ void transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 			S_enter(venv, d->u.var.var, E_VarEntry(ta, right.ty));
 		}
 		else {
-			Ty_ty ty = S_look(tenv, d->u.var.typ);
+			Ty_ty ty = S_look(tenv, d->u.var.typ); 
 			if (!ty)
 				EM_error(d->pos, "undefined type '%s'", S_name(d->u.var.typ));
 			// right.ty 是右边的表达式类型（有可能是Nil），ty->kind 是指定的
@@ -288,18 +299,23 @@ void transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 				EM_error(d->pos, "assign incompatible type to variable '%s'", S_name(d->u.var.var));
 			S_enter(venv, d->u.var.var, E_VarEntry(ta, ty));//right.ty（有可能是Nil）
 		}
-		break;
+		return Tr_varDec(ta, right.exp);
 	}
 	case A_typeDec: {
-	// var a=1  var b="2"
+
+	// type INT= int   type list = {first:int, rest:list}
 	// A_namety A_Namety(S_symbol name, A_ty ty);
 	// A_nametyList A_NametyList(A_namety head, A_nametyList tail)
 		A_nametyList n;		// typedefList
 		// 把所有的type头送入类型表里面，假装它们已经定义
 		for (n = d->u.type; n; n = n->tail) {
+			if (innerIndentifiers(n->head->name)) {  //如果定义int ,或者string
+				EM_error(n->head->ty->pos, "predefined type %s", S_name(n->head->name));
+				continue;
+			}
 			S_enter(tenv, n->head->name, Ty_Name(n->head->name, NULL));
 		}
-		// 把各record的类型由Ty_nameTy修改为Ty_fieldList
+		// 把各record的类型由Ty_name修改为Ty_fieldList
 		for (n = d->u.type; n; n = n->tail) {
 			S_enter(tenv, n->head->name, transTy(tenv, n->head->ty));
 		}
@@ -307,7 +323,7 @@ void transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 		// 已验证正确，去掉下面的语句，则定义自递归的时候会出错: type list = {first:int, rest:list}
 		for (n = d->u.type; n; n = n->tail) {
 			Ty_ty x = S_look(tenv, n->head->name);
-			if (x->kind == A_nameTy)
+			if (x->kind == Ty_name)
 				S_enter(tenv, n->head->name, transTy(tenv, n->head->ty));
 		}
 		break;
@@ -380,7 +396,7 @@ Ty_ty transTy (S_table tenv, A_ty a)
 			EM_error(a->pos, "undefined type %s", S_name(a->u.name));
 			return Ty_Int();//未定义的类型默认是int类型
 		} 
-		if (x->kind == Ty_name) {// 提前定义了一个未定义的类型
+		if (x->kind == Ty_name && x->u.name.ty != NULL ) {// 提前定义了一个未定义的类型
 			// type a = b    type b = a
 			// x = Ty_Name("b", NULL)
 			EM_error(a->pos, "undefined type %s", S_name(x->u.name.sym));
@@ -459,4 +475,11 @@ static U_boolList makeFormalBoolList(A_fieldList params){
         }
     }
     return head;
+}
+bool innerIndentifiers(S_symbol name) {
+	if (name == S_Symbol("int") || name == S_Symbol("string") || name == S_Symbol("nil") || name == S_Symbol("void")) {
+		return TRUE;
+	}
+	else
+		return FALSE;
 }

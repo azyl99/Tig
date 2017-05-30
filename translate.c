@@ -4,6 +4,16 @@ static Tr_level outermost = NULL;
 void Tr_print_access(Tr_access a);
 void Tr_print_level(Tr_level l);
 
+static patchList PatchList(Temp_label *head, patchList tail);
+static doPatch(patchList tList, Temp_label label);
+static joinPatch(patchList first, patchList second);
+static Tr_exp Tr_Ex(T_exp ex);  
+static Tr_exp Tr_Nx(T_stm ex);
+static Tr_exp Tr_Cx(patchList trues, patchList falses, T_stm stm);
+static T_exp unEx(Tr_exp e);
+static T_stm unNx(Tr_exp e);
+static struct Cx unCx(Tr_exp e);
+
 struct Tr_level_
 {
     Temp_label      name; 
@@ -87,6 +97,138 @@ void Tr_print_level(Tr_level l){
     F_print_frame(l->frame);
 
 }
+
+static patchList PatchList(Temp_label *head, patchList tail) {
+	patchList pal = check_malloc(sizeof(*pal));
+	pal->head = head;
+	pal->tail = tail;
+	return pal;
+}
+
+static doPatch(patchList tList, Temp_label label) {
+	for (; tList; tList = tList->tail) {
+		*(tList->head) = label;
+	}
+}
+static joinPatch(patchList first, patchList second) {
+	if (!first) return second;
+	for (; first->tail; first = first->tail);
+	first->tail = second;
+	return first; //???
+}
+
+static Tr_exp Tr_Ex(T_exp ex) {
+	Tr_exp te = check_malloc(sizeof(*te));
+	te->kind = Tr_ex;
+	te->u.ex = ex;
+	return te;
+}
+
+static Tr_exp Tr_Nx(T_stm ex) {
+	Tr_exp te = check_malloc(sizeof(*te));
+	te->kind = Tr_nx;
+	te->u.nx = ex;
+	return te;
+}
+static Tr_exp Tr_Cx(patchList trues, patchList falses, T_stm stm) {
+	Tr_exp te = check_malloc(sizeof(*te));
+	te->kind = Tr_cx;
+	te->u.cx.trues = trues;
+	te->u.cx.falses = falses;
+	te->u.cx.stm = stm;
+}
+
+static T_exp unEx(Tr_exp e) {
+	switch (e->kind) {
+	case Tr_ex:
+		return e->u.ex;
+	case Tr_cx: {
+		Temp_temp r = Temp_newtemp();
+		Temp_label t = Temp_newlabel(), f = Temp_newlabel();
+		doPatch(e->u.cx.trues, t);
+		doPatch(e->u.cx.falses, f);
+		return T_Eseq(T_Move(T_Temp(r), T_Const(1)),
+			T_Eseq(e->u.cx.stm,
+				T_Eseq(T_Label(f),
+					T_Eseq(T_Move(T_Temp(r), T_Const(0)),
+						T_Eseq(T_Label(t),
+							T_Temp(r))))));
+	}
+	case Tr_nx:
+		return T_Eseq(e->u.nx, T_Const(0));
+	}
+	assert(0);
+}
+
+static T_stm unNx(Tr_exp e) {
+	switch (e->kind) {
+	case Tr_ex:
+		return T_Exp(e->u.ex);
+	case Tr_cx: {
+		return T_Exp(unEx(e));
+	}
+	case Tr_nx:
+		return e->u.nx;
+	}
+	assert(0);
+}
+static struct Cx unCx(Tr_exp e) {
+	switch (e->kind) {
+	case Tr_ex: {
+		T_stm te = T_Cjump(T_ne, T_Const(0), e->u.ex, NULL, NULL);
+		patchList trues = PatchList(&te->u.CJUMP.true, NULL);
+		patchList falses = PatchList(&te->u.CJUMP.false, NULL);
+		struct Cx cx;
+		cx.falses = falses;
+		cx.trues = trues;
+		cx.stm = te;
+		return cx;
+	}
+	case Tr_cx:
+		return e->u.cx;
+	}
+	assert(0);
+}
+
+
+Tr_exp Tr_intExp(int consti) {
+	T_exp te = T_Const(consti);
+	return Tr_Ex(te);
+}
+
+Tr_exp Tr_stringExp(string val) {
+	Temp_label name = Temp_namedlabel(val);
+	T_exp te = T_Name(name);
+	return Tr_Ex(te);
+}
+
+Tr_exp Tr_simpleVar(Tr_access ta, Tr_level tl) {
+	T_exp temp = T_Const(0);
+	T_exp te = T_Mem(temp);
+	return Tr_Ex(te);
+}
+
+Tr_exp Tr_fieldVar(Tr_access ta, Tr_level t1) {
+
+}
+
+Tr_exp Tr_subscriptVar(Tr_exp base, Tr_exp index) {
+	return Tr_Ex(T_Mem(T_Binop(T_plus, base->u.ex, T_Binop(T_mul,index->u.ex,T_Const(FRAME_WORD_SIZE)))));
+}
+
+Tr_exp Tr_opExp(int ope, Tr_exp left, Tr_exp right) {
+	T_exp te = T_Binop(ope, left->u.ex, right->u.ex);
+	return Tr_Ex(te);
+}
+
+Tr_exp Tr_op2Exp(int ope, Tr_exp left, Tr_exp right) {  
+	T_stm ts = T_Cjump(ope, left->u.ex, right->u.ex,NULL,NULL);
+	patchList trues = PatchList(&ts->u.CJUMP.true,NULL);
+	patchList falses = PatchList(&ts->u.CJUMP.false, NULL);
+	Tr_exp te = Tr_Cx(trues, falses, ts);
+	return te;
+}
+
 
 /*int main(){
     Tr_level l = Tr_newLevel(Tr_outermost(), Temp_newlabel(), U_BoolList(FALSE, U_BoolList(TRUE, NULL)));

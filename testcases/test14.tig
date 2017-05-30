@@ -9,5 +9,6 @@ let
 	var arr := arrtype [3] of 0
 
 in
+	rec.id := 1;
 	if rec <> arr then 3 else 4
 end

@@ -3,8 +3,6 @@
 
 const int MAX_REG = 6;
 const int FRAME_WORD_SIZE = 4;
-void F_print_access(F_access a);
-void F_print_frame(F_frame f);
 
 struct F_access_
 {
@@ -23,6 +21,23 @@ struct F_frame_
     //暂为空                            /* instructions required to implement the “view shift” */
     
 };
+
+static Temp_temp fp = NULL;
+
+Temp_temp F_FP() {
+	if (fp == NULL) {
+		fp = Temp_newtemp();
+	}
+	return fp;
+}
+
+T_exp F_Exp(F_access acc, T_exp framePtr) { //变量的存储地址 fp+offset或temp
+	if (acc->kind == inFrame) {
+		return T_Mem(T_Binop(T_plus, framePtr, T_Const(acc->u.offset)));
+	}
+	else
+		return T_Temp(acc->u.reg);
+}
 
 F_accessList F_AccessList(F_access head, F_accessList tail){
     F_accessList f = checked_malloc(sizeof(*f));
