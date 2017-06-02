@@ -6,6 +6,8 @@
  *  each module should make "wrapper" functions that take
  *  well-typed arguments and call the TAB_ functions.
  */
+#ifndef _TABLE_H_
+#define _TABLE_H_
 
 typedef struct TAB_table_ *TAB_table;
 
@@ -15,6 +17,9 @@ TAB_table TAB_empty(void);
 /* Enter the mapping "key"->"value" into table "t", 
  *    shadowing but not destroying any previous binding for "key". */
 void TAB_enter(TAB_table t, void *key, void *value);
+
+//ÐÞ¸Ä°ó¶¨
+void TAB_changeBind(TAB_table t, void *key, void *value);
 
 /* Look up the most recent binding for "key" in table "t" */
 void *TAB_look(TAB_table t, void *key);
@@ -29,4 +34,4 @@ void *TAB_pop(TAB_table t);
  *  recent binding of any key to the oldest binding in the table */
 void TAB_dump(TAB_table t, void (*show)(void *key, void *value));
 
-
+#endif // !TABLE_H_

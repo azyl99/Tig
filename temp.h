@@ -2,8 +2,8 @@
  * temp.h 
  *
  */
-#ifndef __TEMP_H_
-#define __TEMP_H_
+#ifndef _TEMP_H_
+#define _TEMP_H_
 
 #include "symbol.h"
 #include <stdlib.h>
@@ -35,4 +35,5 @@ void Temp_dumpMap(FILE *out, Temp_map m);
 
 Temp_map Temp_name(void);
 
-#endif 
+#endif // !TEMP_H_
+

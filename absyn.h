@@ -4,8 +4,9 @@
  * All types and functions declared in this header file begin with "A_"
  * Linked list types end with "..list"
  */
-
 /* Type Definitions */
+#ifndef _ABSYN_H_
+#define _ABSYN_H_
 
 typedef int A_pos;
 
@@ -135,3 +136,5 @@ A_namety A_Namety(S_symbol name, A_ty ty);					// namety -> name: ty
 A_nametyList A_NametyList(A_namety head, A_nametyList tail);// nametyList -> namety, nametyList，函数参数列表
 A_efield A_Efield(S_symbol name, A_exp exp);
 A_efieldList A_EfieldList(A_efield head, A_efieldList tail);
+
+#endif // !_ABSYN_H_

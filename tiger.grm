@@ -109,8 +109,8 @@ exp:		  simpleVar							{$$ = A_VarExp(EM_tokPos, $1);}
 			// 记录创建
 			| ID LBRACE RBRACE					{$$ = A_RecordExp(EM_tokPos, S_Symbol($1), NULL);}
 			| ID LBRACE efieldList RBRACE		{$$ = A_RecordExp(EM_tokPos, S_Symbol($1), $3);}
-			// 数组创建
-			| simpleVar LBRACK exp RBRACK OF exp%prec STATEMENT {$$ = A_ArrayExp(EM_tokPos, $1->u.simple, $3, $6);}
+			// 数组创建，和左值 lvalue LBRACK exp RBRACK 冲突！因为只能超前查看一个，所以无法判断！
+			| simpleVar LBRACK exp RBRACK OF exp	%prec STATEMENT {$$ = A_ArrayExp(EM_tokPos, $1->u.simple, $3, $6);}
 			// 语句，定义优先级是因为：末端的exp遇到+-*/【语义上是错的，文法上是对的： _if 1 else 2_ +3 】
 			| IF exp THEN exp 					%prec STATEMENT	{$$ = A_IfExp(EM_tokPos, $2, $4, NULL);}//if (v->u.iff.elsee)
 			| IF exp THEN exp ELSE exp			%prec STATEMENT	{$$ = A_IfExp(EM_tokPos, $2, $4, $6);}

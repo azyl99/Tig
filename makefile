@@ -1,13 +1,21 @@
-a.exe: test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn.o parse.o types.o env.o semant.o frame.o translate.o temp.o
-	cc -g test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn.o parse.o types.o env.o semant.o frame.o translate.o temp.o
+a.exe: test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn.o parse.o \
+types.o env.o semant.o frame.o translate.o temp.o printtree.o tree.o
+	cc -g test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn.o parse.o \
+types.o env.o semant.o frame.o translate.o temp.o printtree.o tree.o
 
+printtree.o: printtree.c printtree.h
+	cc -g -c printtree.c
+
+tree.o: tree.c tree.h temp.h
+	cc -g -c tree.c
+	
 temp.o: temp.c temp.h
 	cc -g -c temp.c
 
-translate.o: translate.c translate.h
+translate.o: translate.c translate.h frame.h tree.h absyn.h util.h
 	cc -g -c translate.c
 
-frame.o: mipsframe.c frame.h
+frame.o: mipsframe.c frame.h tree.h
 	cc -g -c -o frame.o mipsframe.c
 
 test.o: test.c errormsg.h util.h parse.h prabsyn.h

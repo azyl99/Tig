@@ -2,8 +2,8 @@
 #ifndef __TRANSLATE_H_
 #define __TRANSLATE_H_
 
-#include "mipsframe.c"
-#include "tree.h"
+#include "frame.h"
+#include "absyn.h"
 
 
 /* 虚的 Translate 模块*/
@@ -20,10 +20,18 @@ Tr_accessList Tr_formals(Tr_level level);
 Tr_access Tr_allocLocal(Tr_level level, bool escape);
 
 typedef struct patchList_ *patchList;
-struct patchList_ { Temp_label *head; patchList tail };
+struct patchList_ { Temp_label *head; patchList tail; };
 
 typedef struct Tr_exp_ *Tr_exp;
-struct Cx { patchList trues; patchList falses; T_stm stm};
+typedef struct Tr_expList_ *Tr_expList;
+struct Tr_expList_ {
+	Tr_exp head;
+	Tr_expList tail;
+};
+Tr_expList Tr_ExpList(Tr_exp h, Tr_expList t);
+
+
+struct Cx { patchList trues; patchList falses; T_stm stm; };
 struct Tr_exp_ {
 	enum {Tr_ex, Tr_nx, Tr_cx} kind;
 	union {
@@ -37,8 +45,22 @@ struct Tr_exp_ {
 Tr_exp Tr_intExp(int);  
 Tr_exp Tr_stringExp(string val);
 Tr_exp Tr_simpleVar(Tr_access ta, Tr_level tl);
-Tr_exp Tr_fieldVar(Tr_access ta, Tr_level t1);
+Tr_exp Tr_fieldVar(Tr_exp var, int offset);
 Tr_exp Tr_subscriptVar(Tr_exp base, Tr_exp index);
-Tr_exp Tr_opExp(int ope, Tr_exp left, Tr_exp right);//对整型的二元操作符
-Tr_exp Tr_op2Exp(int ope, Tr_exp left, Tr_exp right); //条件表达式
+Tr_exp Tr_arithopExp(A_oper oper, Tr_exp left, Tr_exp right);//对整型的二元操作符
+Tr_exp Tr_logicExp(A_oper oper, Tr_exp left, Tr_exp right);
+Tr_exp Tr_eqopExp(A_oper oper, Tr_exp left, Tr_exp right);
+Tr_exp Tr_eqstringExp(A_oper oper, Tr_exp left, Tr_exp right);
+Tr_exp Tr_recordExp(Tr_expList list, int n);
+Tr_exp Tr_arrayExp(Tr_exp init, Tr_exp size);
+Tr_exp Tr_seqExp(Tr_expList trl);
+Tr_exp Tr_assignExp(Tr_exp left, Tr_exp right);
+Tr_exp Tr_ifExp(Tr_exp test, Tr_exp then, Tr_exp elsee);
+Tr_exp Tr_noExp();
+
+Tr_exp Tr_varDec(Tr_exp lval, Tr_exp init);
+Tr_exp Tr_typeDec();
+Tr_exp Tr_funDec(Tr_expList bodylist);
+
+
 #endif

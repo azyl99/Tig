@@ -1,0 +1,7 @@
+let
+	var a :int := 0
+	var b := 1
+in
+	"abc";
+	b
+end

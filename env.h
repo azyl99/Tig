@@ -1,5 +1,9 @@
 
 /*  */
+#ifndef _ENV_H_
+#define _ENV_H_
+
+
 #include "translate.h"
 #include "temp.h"
 
@@ -19,3 +23,5 @@ E_enventry E_FunEntry(Tr_level level, Temp_label label, Ty_tyList formals, Ty_ty
 // 生成预定义type表和value表的函数
 S_table E_base_tenv(void);
 S_table E_base_venv(void);
+
+#endif // !_ENV_H_

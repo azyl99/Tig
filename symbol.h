@@ -2,6 +2,9 @@
  * symbol.h - Symbols and symbol-tables
  *
  */
+#ifndef _SYMBOL_H_
+#define _SYMBOL_H_
+
 #include "util.h"
 typedef struct S_symbol_ *S_symbol;
 
@@ -38,4 +41,9 @@ void S_beginScope(S_table t);
 void S_endScope(S_table t);
 
 // 测试用的，用完直接把接口删了就好
-//void S_dump(S_table t, void (*show)(S_symbol sym, void *binding));
+void S_dump(S_table t, void (*show)(S_symbol sym, void *binding));
+
+//修改绑定 transDec typeDec中使用
+void S_changeBind(S_table t, S_symbol sym, void *value);
+
+#endif // !SYMBOL_H_

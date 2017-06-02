@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include "frame.h"
+#include "translate.h"
+#include "tree.h"
 
 const int MAX_REG = 6;
 const int FRAME_WORD_SIZE = 4;
@@ -23,6 +25,7 @@ struct F_frame_
 };
 
 static Temp_temp fp = NULL;
+static Temp_temp rv = NULL;
 
 Temp_temp F_FP() {
 	if (fp == NULL) {
@@ -31,12 +34,23 @@ Temp_temp F_FP() {
 	return fp;
 }
 
+Temp_temp F_RV(void) {
+	if (rv == NULL) {
+		rv = Temp_newtemp();
+	}
+	return rv;
+}
+
 T_exp F_Exp(F_access acc, T_exp framePtr) { //变量的存储地址 fp+offset或temp
 	if (acc->kind == inFrame) {
 		return T_Mem(T_Binop(T_plus, framePtr, T_Const(acc->u.offset)));
 	}
 	else
 		return T_Temp(acc->u.reg);
+}
+
+T_exp F_externalCall(string s, T_expList args) {
+	return T_Call(T_Name(Temp_namedlabel(s)), args);
 }
 
 F_accessList F_AccessList(F_access head, F_accessList tail){
@@ -119,7 +133,29 @@ void F_print_frame(F_frame f){
     for(p = f->formals;p;p = p->tail){
         F_print_access(p->head);
     }
+}
 
+F_frag F_StringFrag(Temp_label label, string str) {
+	F_frag strFrag = checked_malloc(sizeof(*strFrag));
+	strFrag->kind = F_stringFrag;
+	strFrag->u.stringg.label = label;
+	strFrag->u.stringg.str = str;
+	return strFrag;
+}
+
+F_frag F_ProcFrag(T_stm body, F_frame frame) {
+	F_frag procFrag = checked_malloc(sizeof(*procFrag));
+	procFrag->kind = F_procFrag;
+	procFrag->u.proc.body = body;
+	procFrag->u.proc.frame = frame;
+	return procFrag;
+}
+
+F_fragList F_FragList(F_frag head, F_fragList tail) {
+	F_fragList fragList = checked_malloc(sizeof(*fragList));
+	fragList->head = head;
+	fragList->tail = tail;
+	return fragList;
 }
 
 /*int main(){

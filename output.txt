@@ -1,0 +1,9 @@
+ ESEQ[
+  EXP[
+   CONST 0],
+  ESEQ[
+   MOVE[
+    MEM[
+     CONST 0],
+    CONST 3],
+   CONST 0]]

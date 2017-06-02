@@ -5,13 +5,14 @@
 #include "absyn.h"
 #include "types.h"
 #include "env.h"
-#include "translate.h"
 #include "semant.h"
+#include "translate.h"
 
 
 #include "prabsyn.h"
 static Ty_tyList makeFormalTyList(S_table tenv, A_fieldList params);
 static U_boolList makeFormalBoolList(A_fieldList params);
+static bool ty_match(Ty_ty tt, Ty_ty ee);
 
 // 跳过Ty_Name类型
 static Ty_ty actual_ty(Ty_ty ty) {
@@ -35,7 +36,7 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 		E_enventry x = S_look(venv, v->u.simple);
 		if (!x || x->kind != E_varEntry) {
 			EM_error(v->pos, "undefined variable %s", S_name(v->u.simple));
-			return expTy(NULL, Ty_Int());// 未定义的变量默认是int类型
+			return expTy(Tr_noExp(), Ty_Int());// 未定义的变量默认是int类型
 		}
 		Tr_access ta = x->u.var.access;
 		Tr_exp te = Tr_simpleVar(ta, level);
@@ -43,7 +44,7 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 	}
 	case A_fieldVar: {
 		// a.b   (field.)   var sym
-		E_enventry x = S_look(venv, v->u.field.var->u.simple);// Ty_record
+		/*E_enventry x = S_look(venv, v->u.field.var->u.simple);// Ty_record
 		if (!x || x->kind != E_varEntry) {
 			EM_error(v->pos, "undefined record %s", S_name(v->u.field.var->u.simple));
 			return expTy(NULL, Ty_Int());// 未定义的变量默认是int类型
@@ -62,13 +63,27 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 		if (!fl) {
 			EM_error(v->pos, "record variable '%s' do not have field named '%s'", S_name(v->u.field.var->u.simple), S_name(v->u.field.sym));
 			return expTy(NULL, Ty_Int());
-		}
+		}*/
 
-		return expTy(NULL, f->ty);
+		//a.b.c形式的fieldVar
+		struct expty var= transVar(level, venv, tenv, v->u.field.var);
+		if (var.ty->kind != Ty_record) {
+			EM_error(v->pos, "not a record type"); 
+		}
+		Ty_fieldList fieldList;
+		int num = 0;
+		for (fieldList = var.ty->u.record; fieldList; fieldList = fieldList->tail) {
+			if (fieldList->head->name == v->u.field.sym) {
+				return expTy(Tr_fieldVar(var.exp, num),actual_ty(fieldList->head->ty));
+			}
+			num++;
+		}
+		EM_error(v->pos, "no corresponding field of the variable");
+		return expTy(Tr_noExp(), Ty_Int());
 	}
 	case A_subscriptVar: {
 		// a[b]  (subscript.) var exp
-		E_enventry x = S_look(venv, v->u.subscript.var->u.simple);
+		/*E_enventry x = S_look(venv, v->u.subscript.var->u.simple);
 		if (!x || x->kind != E_varEntry) {
 			EM_error(v->pos, "undefined variable '%s'", S_name(v->u.subscript.var->u.simple));
 			return expTy(NULL, Ty_Int());// 未定义的变量默认是int类型
@@ -86,13 +101,28 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 		Tr_exp base = Tr_simpleVar(x->u.var.access, level);
 		Tr_exp index = e.exp;
 		Tr_exp te = Tr_subscriptVar(base, index);
-		return expTy(te, ty->u.array);
+		return expTy(te, ty->u.array);*/
+
+		struct expty var = transVar(level, venv, tenv, v->u.subscript.var);
+		if (var.ty->kind != Ty_array) {
+			EM_error(v->pos, "not an array type");
+			return expTy(Tr_noExp(), Ty_Int());// 默认是int类型
+		}
+		else {
+			struct expty exp= transExp(level, venv, tenv, v->u.subscript.exp);
+			if (exp.ty->kind != Ty_int) {
+				EM_error(v->pos, "int required");
+				return expTy(Tr_noExp(), Ty_Int());// 默认是int类型
+			}
+			else {
+				return expTy(Tr_subscriptVar(var.exp, exp.exp), actual_ty(var.ty->u.array));
+			}
+		}
+
 	}
+	default:
+		assert(0);
 	}
-	// ...
-	assert(0);
-	struct expty e;
-	return e;
 }
 
 struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
@@ -102,10 +132,10 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		return transVar(level, venv, tenv, a->u.var);
 	}
 	case A_nilExp: {
-		return expTy(NULL, Ty_Nil());
+		return expTy(Tr_noExp(), Ty_Nil());
 	}
 	case A_voidExp: {
-		return expTy(NULL, Ty_Void());
+		return expTy(Tr_noExp(), Ty_Void());
 	}
 	case A_intExp: {
 		Tr_exp te = Tr_intExp(a->u.intt);
@@ -121,7 +151,7 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		E_enventry x = S_look(venv, a->u.call.func);
 		if (!x || x->kind != E_funEntry) {
 			EM_error(a->pos, "undefined function %s", S_name(a->u.call.func));
-			return expTy(NULL, Ty_Int());	// 未定义的函数，默认Ty_Int()
+			return expTy(Tr_noExp(), Ty_Int());	// 未定义的函数，默认Ty_Int()
 		}
 		Ty_tyList tl; A_expList al; int i;
 		for (tl = x->u.fun.formals,al = a->u.call.args,i=1; al&&tl; al=al->tail,tl=tl->tail,i++) {
@@ -133,64 +163,104 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		if (al || tl) {
 			EM_error(a->pos, "formal and actual arguments of function '%s' are not equal", S_name(a->u.call.func));
 		}
-		return expTy(NULL, x->u.fun.result);
+		return expTy(Tr_noExp(), x->u.fun.result);
 	}
 	case A_opExp: {
 		A_oper oper = a->u.op.oper;
 		struct expty left = transExp(level, venv, tenv, a->u.op.left);
 		struct expty right = transExp(level, venv, tenv, a->u.op.right);
 		switch (oper) {
-		case A_plusOp: case A_minusOp: case A_timesOp: case A_divideOp: {
+		case A_plusOp: case A_minusOp: case A_timesOp: case A_divideOp: { //要求整型操作数
 			if (left.ty->kind != Ty_int)
 				EM_error(a->u.op.left->pos, "integer required for arithmetic operator");
-			if (right.ty->kind != Ty_int)
+			else if (right.ty->kind != Ty_int)
 				EM_error(a->u.op.right->pos, "integer required for arithmetic operator");
-			Tr_exp te = Tr_opExp(oper, left.exp, right.exp);
-			return expTy(NULL, Ty_Int());
+			else {
+				Tr_exp te = Tr_arithopExp(oper, left.exp, right.exp);
+				return expTy(te, Ty_Int());
+			}
 		}
-		case A_eqOp: case A_neqOp: case A_ltOp: case A_leOp: case A_gtOp: case A_geOp: {
-			if (left.ty->kind != right.ty->kind && !(left.ty->kind == Ty_record && right.ty->kind == Ty_nil) && !(left.ty->kind == Ty_nil && right.ty->kind == Ty_record))
-				EM_error(a->u.op.left->pos, "comparation between incompatible types");
-			Tr_exp te = Tr_op2Exp(oper - 6, left.exp, right.exp);
-			return expTy(NULL, Ty_Int());//返回0或1
+		case A_eqOp: case A_neqOp:{
+			if (ty_match(left.ty, right.ty)) {
+				if (left.ty->kind == Ty_int) {
+					return expTy(Tr_eqopExp(oper, left.exp, right.exp), Ty_Int());
+				}
+				else if (left.ty->kind == Ty_record || right.ty->kind == Ty_record) {
+					return expTy(Tr_eqopExp(oper, left.exp, right.exp), Ty_Int());
+				}
+				else if (left.ty->kind == Ty_array) {
+					return expTy(Tr_eqopExp(oper, left.exp, right.exp), Ty_Int());
+				}
+				else if (left.ty->kind == Ty_string) {
+					return expTy(Tr_eqstringExp(oper, left.exp, right.exp), Ty_Int());
+				}
+			}
+		}
+		case A_ltOp: case A_leOp: case A_gtOp: case A_geOp:{
+			if (ty_match(left.ty, right.ty)) {
+				if (left.ty->kind == Ty_int) {
+					return expTy(Tr_eqopExp(oper, left.exp, right.exp), Ty_Int());
+				}
+				else if (left.ty->kind == Ty_string) {
+					return expTy(Tr_eqstringExp(oper, left.exp, right.exp), Ty_Int());
+				}
+			}
 		}
 		case A_andOp: case A_orOp: {
-			Tr_exp te = Tr_opExp(oper, left.exp, right.exp);
-			return expTy(NULL, Ty_Int());//返回0或1
+			return expTy(Tr_logicExp(oper,left.exp,right.exp) , Ty_Int());//返回0或1
 		}
-		default: assert(0);
+		default: 
+			EM_error(a->pos, "The operator %d is not accepted", a->u.op.oper);
 		}
-		//...
+		return expTy(Tr_noExp(), Ty_Int());
 	}
 	case A_recordExp: {
 	// node{name="zyl", age=19}
-		Ty_ty ty = S_look(tenv, a->u.record.typ);// ty: Ty_record
+		Ty_ty ty = actual_ty(S_look(tenv, a->u.record.typ));// ty: Ty_record
 		if (!ty)
-			EM_error(a->pos, "undefined type %s", S_name(a->u.record.typ));
-		if (ty->kind != Ty_record)
-			EM_error(a->pos, "type %s is not record type", S_name(a->u.record.typ));
-		
-		A_efieldList al;
-		Ty_fieldList tl;
-		for (al = a->u.record.fields, tl = ty->u.record; al&&tl; al=al->tail,tl=tl->tail) {		
-			// 查看字段名称是否正确
-			if (!S_isEqual(al->head->name, tl->head->name))
-				EM_error(a->pos, "record '%s' expect field name '%s', not '%s'", 
-					S_name(a->u.record.typ), S_name(tl->head->name), S_name(al->head->name));
-			// 查看字段值类型是否正确
-			struct expty e = transExp(level, venv, tenv, al->head->exp);
-			if (e.ty->kind != tl->head->ty->kind && !(e.ty->kind == Ty_nil && tl->head->ty->kind == Ty_record))
-				EM_error(a->pos, "assign incompatible type to field '%s'", S_name(tl->head->name));
+			EM_error(a->pos, "undefined type %s (debug recordExp)", S_name(a->u.record.typ));
+		else {
+			if (ty->kind != Ty_record)
+				EM_error(a->pos, "type %s is not record type", S_name(a->u.record.typ));
+			else {
+				A_efieldList al;
+				Ty_fieldList tl;
+				for (al = a->u.record.fields, tl = ty->u.record; al&&tl; al = al->tail, tl = tl->tail) {
+					// 查看字段名称是否正确
+					if (!S_isEqual(al->head->name, tl->head->name)) {
+						EM_error(a->pos, "record '%s' expect field name '%s', not '%s'",
+							S_name(a->u.record.typ), S_name(tl->head->name), S_name(al->head->name));
+						return expTy(Tr_noExp(), Ty_Int());
+					}
+					// 查看字段值类型是否正确
+					struct expty e = transExp(level, venv, tenv, al->head->exp);
+					if (e.ty->kind != tl->head->ty->kind && !(e.ty->kind == Ty_nil && tl->head->ty->kind == Ty_record)) {
+						EM_error(a->pos, "assign incompatible type to field '%s'", S_name(tl->head->name));
+						return expTy(Tr_noExp(), Ty_Int());
+					}
+				}
+				Tr_expList trl = NULL;
+				int num = 0;
+				//将字段值表达式转换成Tr_expList列表
+				for (al = a->u.record.fields; al; al = al->tail) {
+					num++;
+					struct expty e = transExp(level, venv, tenv, al->head->exp);
+					trl = Tr_ExpList(e.exp, trl);
+				}
+				return expTy(Tr_recordExp(trl, num), ty);
+			}
 		}
-		return expTy(NULL, ty);
+		return expTy(Tr_noExp(), Ty_Int());
 	}
 	case A_seqExp: {
 		struct expty e;
 		A_expList l = a->u.seq;
+		Tr_expList trl = NULL;
 		for ( ; l; l = l->tail) {
 			e = transExp(level, venv, tenv, l->head);//中间代码丢失
+			trl = Tr_ExpList(e.exp, trl);
 		}
-		return e;
+		return expTy(Tr_seqExp(trl),e.ty);
 	}
 	case A_assignExp: {
 		struct expty left = transVar(level, venv, tenv, a->u.assign.var);
@@ -199,22 +269,29 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 			//之所以用u.assign.var的位置是因为u.assign.exp的位置已经是下一行的了
 			EM_error(a->u.assign.var->pos, "assign incompatible type to left value");//有可能是其他左值（如 a.b[1] ），无法打印
 		}
-		return expTy(NULL, Ty_Void());
+		else {
+			return expTy(Tr_assignExp(left.exp, right.exp), Ty_Void());
+		}
+		return expTy(Tr_noExp(), Ty_Void());
 	}
 	case A_ifExp: {
 		struct expty test = transExp(level, venv, tenv, a->u.iff.test);
 		struct expty then = transExp(level, venv, tenv, a->u.iff.then);
+		struct expty elsee = expTy(NULL, NULL);
 		if (a->u.iff.elsee) {
-			struct expty elsee = transExp(level, venv, tenv, a->u.iff.elsee);
-			if (then.ty->kind != elsee.ty->kind && !(then.ty->kind==Ty_nil && elsee.ty->kind ==Ty_record) && !(then.ty->kind==Ty_record && elsee.ty->kind ==Ty_nil))
-				EM_error(a->u.iff.then->pos, "in if-then-else statement, body of then and else require same type");
-			return expTy(NULL, then.ty);
+			elsee = transExp(level, venv, tenv, a->u.iff.elsee);
+			if (!ty_match(then.ty, elsee.ty)) {
+				EM_error(a->pos, "else and then don't have same type");
+			}
+			else if (test.ty->kind != Ty_int) {
+				EM_error(a->u.iff.test->pos, "int required for test");
+			}
+			else {
+				return expTy(Tr_ifExp(test.exp, then.exp, elsee.exp), then.ty);
+			}
 		}
-		else {
-			if (then.ty->kind != Ty_void)
-				EM_error(a->u.iff.then->pos, "body of if-then statement require void type");
-			return expTy(NULL, then.ty);
-		}
+
+		return expTy(Tr_noExp(), then.ty);
 	}
 	case A_whileExp: {
 	// while exp1 do exp2
@@ -244,36 +321,41 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		return expTy(NULL, body.ty);
 	}
 	case A_letExp: {
-		struct expty e;
 		A_decList d;
+		Tr_expList trl = NULL;
+		struct expty t;
 		S_beginScope(venv);
 		S_beginScope(tenv);
-		for (d = a->u.let.decs; d; d = d->tail)
-			transDec(level, venv, tenv, d->head);
-		e = transExp(level, venv, tenv, a->u.let.body);
+		for (d = a->u.let.decs; d; d = d->tail) {
+			trl = Tr_ExpList(transDec(level, venv, tenv, d->head),trl);
+		}
+		t = transExp(level, venv, tenv, a->u.let.body);
+		trl = Tr_ExpList(t.exp, trl);
 		S_endScope(tenv);
 		S_endScope(venv);
-		return e;
+		return expTy(Tr_seqExp(trl),t.ty);
 	}
 	case A_arrayExp: {
 	// intArr [5] of 0
 	// typ size init
-		Ty_ty ty = S_look(tenv, a->u.array.typ);// ty: Ty_record
+		Ty_ty ty = actual_ty(S_look(tenv, a->u.array.typ));// ty: Ty_record
 		if (!ty)
 			EM_error(a->pos, "undefined type %s", S_name(a->u.array.typ));
-		ty = actual_ty(ty);
-		struct expty size = transExp(level, venv, tenv, a->u.array.size);
-		struct expty init = transExp(level, venv, tenv, a->u.array.init);
-		if (size.ty->kind != Ty_int) 
-			EM_error(a->pos, "integer required for array size");
-		if (init.ty->kind != ty->u.array->kind)
-			EM_error(a->pos, "assign incompatible type to array element");
+		else {
+			struct expty size = transExp(level, venv, tenv, a->u.array.size);
+			struct expty init = transExp(level, venv, tenv, a->u.array.init);
+			if (size.ty->kind != Ty_int)
+				EM_error(a->pos, "integer required for array size");
+			else if(init.ty->kind != ty->u.array->kind)
+				EM_error(a->pos, "assign incompatible type to array element");
+			else {
+				return expTy(Tr_arrayExp(init.exp, size.exp), ty);
+			}
+		}
 		return expTy(NULL, ty);
 	} 
+	default:assert(0); 
 	}
-	assert(0);
-	struct expty e;
-	return e;
 }
 
 Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
@@ -291,7 +373,7 @@ Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 			S_enter(venv, d->u.var.var, E_VarEntry(ta, right.ty));
 		}
 		else {
-			Ty_ty ty = S_look(tenv, d->u.var.typ); 
+			Ty_ty ty = actual_ty(S_look(tenv, d->u.var.typ));
 			if (!ty)
 				EM_error(d->pos, "undefined type '%s'", S_name(d->u.var.typ));
 			// right.ty 是右边的表达式类型（有可能是Nil），ty->kind 是指定的
@@ -299,7 +381,7 @@ Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 				EM_error(d->pos, "assign incompatible type to variable '%s'", S_name(d->u.var.var));
 			S_enter(venv, d->u.var.var, E_VarEntry(ta, ty));//right.ty（有可能是Nil）
 		}
-		return Tr_varDec(ta, right.exp);
+		return Tr_varDec(Tr_simpleVar(ta,level), right.exp);
 	}
 	case A_typeDec: {
 
@@ -326,7 +408,9 @@ Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 			if (x->kind == Ty_name)
 				S_enter(tenv, n->head->name, transTy(tenv, n->head->ty));
 		}
+		return Tr_typeDec();
 		break;
+
 	}
 	case A_functionDec: {// 没有返回值是Ty_void类型
 	// function f(a:int, b:tree): string = body -->[fd]
@@ -476,6 +560,19 @@ static U_boolList makeFormalBoolList(A_fieldList params){
     }
     return head;
 }
+
+static bool ty_match(Ty_ty tt, Ty_ty ee) {
+	Ty_ty t = actual_ty(tt);
+	Ty_ty e = actual_ty(ee);
+	int tk = t->kind;
+	int ek = e->kind;
+
+	return (((tk == Ty_record || tk == Ty_array) && t == e) ||
+		(tk == Ty_record && ek == Ty_nil) ||
+		(ek == Ty_record && tk == Ty_nil) ||
+		(tk != Ty_record && tk != Ty_array && tk == ek));
+}
+
 bool innerIndentifiers(S_symbol name) {
 	if (name == S_Symbol("int") || name == S_Symbol("string") || name == S_Symbol("nil") || name == S_Symbol("void")) {
 		return TRUE;
