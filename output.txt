@@ -1,69 +1,81 @@
- ESEQ[
+ SEQ[
   EXP[
    CONST 0],
-  ESEQ[
+  SEQ[
    MOVE[
     MEM[
      CONST 0],
-    ESEQ[
-     SEQ[
-      MOVE[
-       TEMP t100,
-       CALL[
-        NAME initRecord,
-         CONST 12]],
-      SEQ[
-       MOVE[
-        MEM[
-         BINOP[PLUS,
-          TEMP t100,
-          CONST 0]],
-        CONST 3],
-       SEQ[
-        MOVE[
-         MEM[
-          BINOP[PLUS,
-           TEMP t100,
-           CONST 4]],
-         CONST 2],
-        MOVE[
-         MEM[
-          BINOP[PLUS,
-           TEMP t100,
-           CONST 8]],
-         CONST 6]]]],
-     TEMP t100]],
-   ESEQ[
+    CONST 1],
+   SEQ[
     MOVE[
      MEM[
       CONST 0],
-     CALL[
-      NAME initArray,
-       CONST 3,
-       CONST 0]],
-    ESEQ[
+     CONST 1],
+    SEQ[
      MOVE[
       MEM[
        CONST 0],
-      CONST 1],
-     ESEQ[
+      CONST 0],
+     SEQ[
       MOVE[
        MEM[
         CONST 0],
-       MEM[
-        BINOP[PLUS,
-         MEM[
-          CONST 0],
-         CONST 4]]],
-      ESEQ[
+       CONST 0],
+      SEQ[
        MOVE[
         MEM[
          CONST 0],
-        MEM[
-         BINOP[PLUS,
+        CONST 0],
+       SEQ[
+        EXP[
+         CONST 0],
+        SEQ[
+         MOVE[
           MEM[
            CONST 0],
-          BINOP[TIMES,
-           CONST 2,
-           CONST 4]]]],
-       CONST 3]]]]]]
+          CALL[
+           NAME initArray,
+            CONST 1,
+            CONST 0]],
+         SEQ[
+          EXP[
+           CONST 1],
+          SEQ[
+           MOVE[
+            MEM[
+             CONST 0],
+            ESEQ[
+             SEQ[
+              MOVE[
+               TEMP t100,
+               CALL[
+                NAME initRecord,
+                 CONST 8]],
+              SEQ[
+               MOVE[
+                MEM[
+                 BINOP[PLUS,
+                  TEMP t100,
+                  CONST 0]],
+                NAME L12],
+               MOVE[
+                MEM[
+                 BINOP[PLUS,
+                  TEMP t100,
+                  CONST 4]],
+                CONST 19]]],
+             TEMP t100]],
+           SEQ[
+            MOVE[
+             MEM[
+              CONST 0],
+             CONST 0],
+            SEQ[
+             MOVE[
+              MEM[
+               CONST 0],
+              CONST 0],
+             MOVE[
+              MEM[
+               CONST 0],
+              CONST 0]]]]]]]]]]]]]

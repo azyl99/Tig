@@ -1,4 +1,4 @@
-/*let
+let
 	type INT = int
 	type INTEGER = int
 	
@@ -24,12 +24,12 @@ in(
 	mytree := tree{key=x, children=li};
 	mytree := tree{key=x, children=nil}
 	
-)end*/
+)end
 
 /************IR*************************/
 
 //序列数组记录类型定义
-let 
+/*let 
 	type INT = int
 	type intlist = {a:int,b:int,c:int}
 	type arr = array of int
@@ -40,7 +40,7 @@ in
 	b := rec.b;
 	b := a[2];
 	3
-end
+end*/
 
 //op
 /*let 
