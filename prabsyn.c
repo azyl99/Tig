@@ -52,8 +52,8 @@ static void pr_var(FILE *out, A_var v, int d) {
 }
 
 static char str_oper[][12] = {
-   "PLUS", "MINUS", "TIMES", "DIVIDE", 
-   "EQUAL", "NOTEQUAL", "LESSTHAN", "LESSEQ", "GREAT", "GREATEQ"};
+   "PLUS", "MINUS", "TIMES", "DIVIDE", "AND","OR",
+   "EQUAL", "NOTEQUAL", "LESSTHAN", "LESSEQ", "GREATTHAN", "GREATEQ"};
  
 static void pr_oper(FILE *out, A_oper d) {
   fprintf(out, "%s", str_oper[d]);

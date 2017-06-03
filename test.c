@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
  
  FILE *f = fopen("output.txt", "w");
 
- e = transExp(Tr_outermost(), base_venv, base_tenv, a_exp);
+ e = transExp(Tr_outermost(), NULL, base_venv, base_tenv, a_exp);
  switch (e.exp->kind)
  {
  case Tr_ex:

@@ -8,9 +8,9 @@ struct expty {
 };
 
 
-struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v);
-struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a);
-Tr_exp       transDec(Tr_level level, S_table venv, S_table tenv, A_dec d);
+struct expty transVar(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_var v);
+struct expty transExp(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_exp a);
+Tr_exp       transDec(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_dec d);
 Ty_ty transTy(S_table tenv, A_ty a);
 
 bool innerIndentifiers(S_symbol name);

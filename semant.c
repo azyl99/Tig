@@ -29,7 +29,7 @@ struct expty expTy(Tr_exp exp, Ty_ty ty)
 	return e;
 }
 
-struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
+struct expty transVar(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_var v)
 {
 	switch (v->kind) {
 	case A_simpleVar: {
@@ -66,7 +66,7 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 		}*/
 
 		//a.b.c形式的fieldVar
-		struct expty var= transVar(level, venv, tenv, v->u.field.var);
+		struct expty var= transVar(level, breakk, venv, tenv, v->u.field.var);
 		if (var.ty->kind != Ty_record) {
 			EM_error(v->pos, "not a record type"); 
 		}
@@ -103,13 +103,13 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 		Tr_exp te = Tr_subscriptVar(base, index);
 		return expTy(te, ty->u.array);*/
 
-		struct expty var = transVar(level, venv, tenv, v->u.subscript.var);
+		struct expty var = transVar(level, breakk, venv, tenv, v->u.subscript.var);
 		if (var.ty->kind != Ty_array) {
 			EM_error(v->pos, "not an array type");
 			return expTy(Tr_noExp(), Ty_Int());// 默认是int类型
 		}
 		else {
-			struct expty exp= transExp(level, venv, tenv, v->u.subscript.exp);
+			struct expty exp= transExp(level, breakk, venv, tenv, v->u.subscript.exp);
 			if (exp.ty->kind != Ty_int) {
 				EM_error(v->pos, "int required");
 				return expTy(Tr_noExp(), Ty_Int());// 默认是int类型
@@ -125,11 +125,11 @@ struct expty transVar(Tr_level level, S_table venv, S_table tenv, A_var v)
 	}
 }
 
-struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
+struct expty transExp(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_exp a)
 {
 	switch (a->kind) {
 	case A_varExp: {
-		return transVar(level, venv, tenv, a->u.var);
+		return transVar(level, breakk, venv, tenv, a->u.var);
 	}
 	case A_nilExp: {
 		return expTy(Tr_noExp(), Ty_Nil());
@@ -146,6 +146,7 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		return expTy(te, Ty_String());
 	}
 	case A_callExp: {
+
 	// f(a, b)
 	// func args :   call   S_symbol func, A_expList args
 		E_enventry x = S_look(venv, a->u.call.func);
@@ -156,7 +157,7 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		Ty_tyList tl; A_expList al; int i;
 		for (tl = x->u.fun.formals,al = a->u.call.args,i=1; al&&tl; al=al->tail,tl=tl->tail,i++) {
 			// 查看各参数类型是否正确
-			struct expty e = transExp(level, venv, tenv, al->head);
+			struct expty e = transExp(level, breakk, venv, tenv, al->head);
 			if (e.ty->kind != tl->head->kind && !(e.ty->kind == Ty_nil && tl->head->kind == Ty_record))
 				EM_error(a->pos, "assign incompatible type to argument %d of function '%s'", i, S_name(a->u.call.func));
 		}
@@ -167,8 +168,8 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 	}
 	case A_opExp: {
 		A_oper oper = a->u.op.oper;
-		struct expty left = transExp(level, venv, tenv, a->u.op.left);
-		struct expty right = transExp(level, venv, tenv, a->u.op.right);
+		struct expty left = transExp(level, breakk, venv, tenv, a->u.op.left);
+		struct expty right = transExp(level, breakk, venv, tenv, a->u.op.right);
 		switch (oper) {
 		case A_plusOp: case A_minusOp: case A_timesOp: case A_divideOp: { //要求整型操作数
 			if (left.ty->kind != Ty_int)
@@ -233,7 +234,7 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 						return expTy(Tr_noExp(), Ty_Int());
 					}
 					// 查看字段值类型是否正确
-					struct expty e = transExp(level, venv, tenv, al->head->exp);
+					struct expty e = transExp(level, breakk, venv, tenv, al->head->exp);
 					if (e.ty->kind != tl->head->ty->kind && !(e.ty->kind == Ty_nil && tl->head->ty->kind == Ty_record)) {
 						EM_error(a->pos, "assign incompatible type to field '%s'", S_name(tl->head->name));
 						return expTy(Tr_noExp(), Ty_Int());
@@ -244,7 +245,7 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 				//将字段值表达式转换成Tr_expList列表
 				for (al = a->u.record.fields; al; al = al->tail) {
 					num++;
-					struct expty e = transExp(level, venv, tenv, al->head->exp);
+					struct expty e = transExp(level, breakk, venv, tenv, al->head->exp);
 					trl = Tr_ExpList(e.exp, trl);
 				}
 				return expTy(Tr_recordExp(trl, num), ty);
@@ -257,14 +258,14 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		A_expList l = a->u.seq;
 		Tr_expList trl = NULL;
 		for ( ; l; l = l->tail) {
-			e = transExp(level, venv, tenv, l->head);//中间代码丢失
+			e = transExp(level, breakk, venv, tenv, l->head);//中间代码丢失
 			trl = Tr_ExpList(e.exp, trl);
 		}
 		return expTy(Tr_seqExp(trl),e.ty);
 	}
 	case A_assignExp: {
-		struct expty left = transVar(level, venv, tenv, a->u.assign.var);
-		struct expty right = transExp(level, venv, tenv, a->u.assign.exp);
+		struct expty left = transVar(level, breakk, venv, tenv, a->u.assign.var);
+		struct expty right = transExp(level, breakk, venv, tenv, a->u.assign.exp);
 		if (left.ty->kind != right.ty->kind && !(left.ty->kind == Ty_record && right.ty->kind == Ty_nil)) {
 			//之所以用u.assign.var的位置是因为u.assign.exp的位置已经是下一行的了
 			EM_error(a->u.assign.var->pos, "assign incompatible type to left value");//有可能是其他左值（如 a.b[1] ），无法打印
@@ -275,11 +276,11 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		return expTy(Tr_noExp(), Ty_Void());
 	}
 	case A_ifExp: {
-		struct expty test = transExp(level, venv, tenv, a->u.iff.test);
-		struct expty then = transExp(level, venv, tenv, a->u.iff.then);
+		struct expty test = transExp(level, breakk, venv, tenv, a->u.iff.test);
+		struct expty then = transExp(level, breakk, venv, tenv, a->u.iff.then);
 		struct expty elsee = expTy(NULL, NULL);
 		if (a->u.iff.elsee) {
-			elsee = transExp(level, venv, tenv, a->u.iff.elsee);
+			elsee = transExp(level, breakk, venv, tenv, a->u.iff.elsee);
 			if (!ty_match(then.ty, elsee.ty)) {
 				EM_error(a->pos, "else and then don't have same type");
 			}
@@ -296,29 +297,37 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 	case A_whileExp: {
 	// while exp1 do exp2
 	// struct {A_exp test, body;} whilee;
-		transExp(level, venv, tenv, a->u.whilee.test);
-		struct expty body = transExp(level, venv, tenv, a->u.whilee.body);
-		if (body.ty->kind != Ty_void) 
-			EM_error(a->u.whilee.body->pos, "body of while expresion require void type");
-		return expTy(NULL, body.ty);
+		struct expty e = transExp(level, breakk, venv, tenv, a->u.whilee.test);
+		if (e.ty->kind != Ty_int) {
+			EM_error(a->u.whilee.test->pos, "body of test expresion require int type");
+		}
+		else {
+			Tr_exp done = Tr_doneLabel();
+			struct expty body = transExp(level, done, venv, tenv, a->u.whilee.body);
+			if (body.ty->kind != Ty_void)
+				EM_error(a->u.whilee.body->pos, "body of while expresion require void type");
+			else {
+				return expTy(Tr_whileExp(done, e.exp, body.exp), Ty_Void());
+			}
+		}
+		return expTy(Tr_noExp(),Ty_Void());
 	}
 	case A_forExp: {
 	// for id := exp1 to exp2 ex[3]
 	// struct {S_symbol var; A_exp lo,hi,body; bool escape;} forr;
-		S_beginScope(venv);
-			/*S_enter(venv, a->u.forr.var, E_VarEntry(Ty_Int()));*/
-            transDec(level, venv, tenv, A_VarDec(a->pos, a->u.forr.var, S_Symbol("int"), a->u.forr.lo));
-			struct expty lo = transExp(level, venv, tenv, a->u.forr.lo);
-			struct expty hi = transExp(level, venv, tenv, a->u.forr.hi);
-			if (lo.ty->kind != Ty_int)
-				EM_error(a->u.forr.lo->pos, "lo of loop statement should be int type");
-			if (hi.ty->kind != Ty_int)
-				EM_error(a->u.forr.hi->pos, "hi of loop statement should be int type");
-			// 还要不可以对var赋值
-			// ...
-			struct expty body = transExp(level, venv, tenv, a->u.forr.body);
-		S_endScope(venv);
-		return expTy(NULL, body.ty);
+		//将for构建成let,while结合的抽象语法树
+		A_decList letDec = A_DecList(A_VarDec(a->pos, a->u.forr.var, S_Symbol("int"), a->u.forr.lo),
+			A_DecList(A_VarDec(a->pos, S_Symbol("limit"), S_Symbol("int"), a->u.forr.hi), NULL));
+		A_exp whilee = A_WhileExp(a->pos, A_OpExp(a->pos, A_leOp, A_VarExp(a->pos, A_SimpleVar(a->pos, a->u.forr.var)),
+			A_VarExp(a->pos, A_SimpleVar(a->pos, S_Symbol("limit")))),
+			A_SeqExp(a->pos, A_ExpList(a->u.forr.body,
+				A_ExpList(A_AssignExp(a->pos,
+					A_SimpleVar(a->pos, a->u.forr.var),
+					A_OpExp(a->pos, A_plusOp,
+						A_VarExp(a->pos, A_SimpleVar(a->pos, a->u.forr.var)),
+						A_IntExp(a->pos, 1))), NULL))));
+		A_exp letExp = A_LetExp(a->pos, letDec, whilee);
+		return transExp(level, breakk, venv, tenv, letExp);
 	}
 	case A_letExp: {
 		A_decList d;
@@ -327,9 +336,9 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		S_beginScope(venv);
 		S_beginScope(tenv);
 		for (d = a->u.let.decs; d; d = d->tail) {
-			trl = Tr_ExpList(transDec(level, venv, tenv, d->head),trl);
+			trl = Tr_ExpList(transDec(level, breakk, venv, tenv, d->head),trl);
 		}
-		t = transExp(level, venv, tenv, a->u.let.body);
+		t = transExp(level, breakk, venv, tenv, a->u.let.body);
 		trl = Tr_ExpList(t.exp, trl);
 		S_endScope(tenv);
 		S_endScope(venv);
@@ -342,8 +351,8 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		if (!ty)
 			EM_error(a->pos, "undefined type %s", S_name(a->u.array.typ));
 		else {
-			struct expty size = transExp(level, venv, tenv, a->u.array.size);
-			struct expty init = transExp(level, venv, tenv, a->u.array.init);
+			struct expty size = transExp(level, breakk, venv, tenv, a->u.array.size);
+			struct expty init = transExp(level, breakk, venv, tenv, a->u.array.init);
 			if (size.ty->kind != Ty_int)
 				EM_error(a->pos, "integer required for array size");
 			else if(init.ty->kind != ty->u.array->kind)
@@ -354,17 +363,26 @@ struct expty transExp(Tr_level level, S_table venv, S_table tenv, A_exp a)
 		}
 		return expTy(NULL, ty);
 	} 
+	case A_breakExp: {
+		if (!breakk) {
+			EM_error(a->pos, "Break should be used in while or for loop");
+		}
+		else {
+			return expTy(Tr_breakExp(breakk), Ty_Void());
+		}
+		return expTy(Tr_noExp(), Ty_Void());
+	}
 	default:assert(0); 
 	}
 }
 
-Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
+Tr_exp transDec(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_dec d)
 {
 	switch (d->kind) {
 	case A_varDec: {
 	// var a:int := 12
 	//   var typ   init
-		struct expty right = transExp(level, venv, tenv, d->u.var.init);//初始化用的表达式
+		struct expty right = transExp(level, breakk, venv, tenv, d->u.var.init);//初始化用的表达式
         //printf("var:%s\n", S_name(d->u.var.var));
         Tr_access ta = Tr_allocLocal(level, d->u.var.escape);
 		if (d->u.var.typ == NULL) {		// 没有指定类型，由初始表达式类型来决定
@@ -377,7 +395,7 @@ Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 			if (!ty)
 				EM_error(d->pos, "undefined type '%s'", S_name(d->u.var.typ));
 			// right.ty 是右边的表达式类型（有可能是Nil），ty->kind 是指定的
-			if (right.ty->kind != ty->kind && right.ty->kind != Ty_nil)
+			if (!ty_match(ty,right.ty))
 				EM_error(d->pos, "assign incompatible type to variable '%s'", S_name(d->u.var.var));
 			S_enter(venv, d->u.var.var, E_VarEntry(ta, ty));//right.ty（有可能是Nil）
 		}
@@ -450,7 +468,7 @@ Tr_exp transDec(Tr_level level, S_table venv, S_table tenv, A_dec d)
 					S_enter(venv, af->head->name, E_VarEntry(al->head, tt->head));//tt->head是Ty_ty类型
 				}
 			}
-			struct expty e = transExp(funcEntry->u.fun.level, venv, tenv, fd->body);//在这个环境下处理函数体
+			struct expty e = transExp(funcEntry->u.fun.level, breakk, venv, tenv, fd->body);//在这个环境下处理函数体
 			S_endScope(venv);
 			
 			E_enventry x = S_look(venv, fd->name);

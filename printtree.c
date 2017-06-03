@@ -22,7 +22,7 @@ static char bin_oper[][12] = {
    "AND", "OR", "LSHIFT", "RSHIFT", "ARSHIFT", "XOR"};
 
 static char rel_oper[][12] = {
-  "EQ", "NE", "LT", "GT", "LE", "GE", "ULT", "ULE", "UGT", "UGE"};
+  "EQ", "NE", "LT", "LE", "GT", "GE", "ULT", "ULE", "UGT", "UGE"};
  
 static void pr_stm(FILE *out, T_stm stm, int d)
 {

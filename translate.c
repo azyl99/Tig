@@ -407,6 +407,27 @@ Tr_exp Tr_ifExp(Tr_exp test, Tr_exp then, Tr_exp elsee) {
 	}
 }
 
+Tr_exp Tr_breakExp(Tr_exp breakk) {
+	return Tr_Nx(T_Jump(T_Name(unEx(breakk)->u.NAME), Temp_LabelList(unEx(breakk)->u.NAME, NULL)));
+}
+
+Tr_exp Tr_doneLabel() {
+	return Tr_Ex(T_Name(Temp_newlabel()));
+}
+
+Tr_exp Tr_whileExp(Tr_exp breakk, Tr_exp test, Tr_exp body) {
+	struct Cx cond = unCx(test);
+	Temp_label start = Temp_newlabel(), doo = Temp_newlabel(), done = unEx(breakk)->u.NAME;
+	doPatch(cond.falses, done);
+	doPatch(cond.trues, doo);
+	return Tr_Nx(T_Seq(T_Label(start),
+		T_Seq(cond.stm,
+			T_Seq(T_Label(doo),
+				T_Seq(unNx(body),
+					T_Seq(T_Jump(T_Name(start), Temp_LabelList(start, NULL)),
+						T_Label(done)))))));
+}
+
 Tr_exp Tr_varDec(Tr_exp lval, Tr_exp init) {
 	return Tr_Nx(T_Move(unEx(lval), unEx(init)));
 }

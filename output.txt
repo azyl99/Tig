@@ -5,5 +5,65 @@
    MOVE[
     MEM[
      CONST 0],
-    CONST 3],
-   CONST 0]]
+    ESEQ[
+     SEQ[
+      MOVE[
+       TEMP t100,
+       CALL[
+        NAME initRecord,
+         CONST 12]],
+      SEQ[
+       MOVE[
+        MEM[
+         BINOP[PLUS,
+          TEMP t100,
+          CONST 0]],
+        CONST 3],
+       SEQ[
+        MOVE[
+         MEM[
+          BINOP[PLUS,
+           TEMP t100,
+           CONST 4]],
+         CONST 2],
+        MOVE[
+         MEM[
+          BINOP[PLUS,
+           TEMP t100,
+           CONST 8]],
+         CONST 6]]]],
+     TEMP t100]],
+   ESEQ[
+    MOVE[
+     MEM[
+      CONST 0],
+     CALL[
+      NAME initArray,
+       CONST 3,
+       CONST 0]],
+    ESEQ[
+     MOVE[
+      MEM[
+       CONST 0],
+      CONST 1],
+     ESEQ[
+      MOVE[
+       MEM[
+        CONST 0],
+       MEM[
+        BINOP[PLUS,
+         MEM[
+          CONST 0],
+         CONST 4]]],
+      ESEQ[
+       MOVE[
+        MEM[
+         CONST 0],
+        MEM[
+         BINOP[PLUS,
+          MEM[
+           CONST 0],
+          BINOP[TIMES,
+           CONST 2,
+           CONST 4]]]],
+       CONST 3]]]]]]
