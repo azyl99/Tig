@@ -71,6 +71,9 @@ void pr_exp(FILE *out, A_exp v, int d) {
  case A_nilExp:
    fprintf(out, "[nilExp]");
    break;
+ case A_voidExp:
+   fprintf(out, "[voidExp]");
+   break;
  case A_intExp:
    fprintf(out, "[intExp %d]", v->u.intt);
    break;
@@ -116,7 +119,7 @@ void pr_exp(FILE *out, A_exp v, int d) {
  case A_forExp:
    fprintf(out, "[forExp [%s]", S_name(v->u.forr.var)); 
    pr_exp(out, v->u.forr.lo, 0);
-   pr_exp(out, v->u.forr.hi, 0); fprintf(out, "[%s]");
+   pr_exp(out, v->u.forr.hi, 0);
    pr_exp(out, v->u.forr.body, 0);
    indent(out, 0); fprintf(out, "[%s]", v->u.forr.escape ? "TRUE]" : "FALSE]");
    break;
