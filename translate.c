@@ -15,6 +15,8 @@ static Tr_exp Tr_Cx(patchList trues, patchList falses, T_stm stm);
 static T_exp unEx(Tr_exp e);
 static T_stm unNx(Tr_exp e);
 static struct Cx unCx(Tr_exp e);
+static Tr_exp Tr_StaticLink(Tr_level now, Tr_level def);
+static T_expList Tr_expList_convert(Tr_expList l);
 
 struct Tr_level_
 {
@@ -48,7 +50,8 @@ Tr_level Tr_newLevel(Tr_level parent, Temp_label name, U_boolList formals){
     Tr_level level = checked_malloc(sizeof(*level));
     level->name = name;
     level->parent = parent;
-    level->frame = F_newFrame(name, formals);
+    //level->frame = F_newFrame(name, formals);
+	level->frame = F_newFrame(name, U_BoolList(TRUE, formals)); //留第一个参数位置给静态链
     Tr_accessList head = NULL, tail = NULL;
     //solve with static link
     //F_accessList fal = F_formals(level->frame)->tail;
@@ -222,9 +225,13 @@ Tr_exp Tr_stringExp(string val) {
 }
 
 Tr_exp Tr_simpleVar(Tr_access ta, Tr_level tl) {
-	T_exp temp = T_Const(0);
-	T_exp te = T_Mem(temp);
-	return Tr_Ex(te);
+	T_exp addr = T_Temp(F_FP());
+	while (tl != ta->level) { //追踪静态链
+		F_access sl = F_formals(tl->frame)->head;
+		addr = F_Exp(sl, addr);
+		tl = tl->parent;
+	}
+	return Tr_Ex(F_Exp(ta->access, addr));
 }
 
 Tr_exp Tr_fieldVar(Tr_exp var, int offset) {
@@ -436,6 +443,10 @@ Tr_exp Tr_typeDec() {
 	return Tr_Ex(T_Const(0));
 }
 
+Tr_exp Tr_callExp(Temp_label label, Tr_level fun, Tr_level call, Tr_expList l) {
+	return Tr_Ex(T_Call(T_Name(label), T_ExpList(Tr_StaticLink(call, fun)->u.ex, Tr_expList_convert(l))));
+}
+
 //函数的转换先空着
 Tr_exp Tr_funDec(Tr_expList bodylist) {
 	T_stm stm;
@@ -452,6 +463,34 @@ Tr_expList Tr_ExpList(Tr_exp h, Tr_expList t) {
 
 Tr_exp Tr_noExp() {
 	return Tr_Ex(T_Const(0));
+}
+
+static Tr_exp Tr_StaticLink(Tr_level now, Tr_level def) {
+	/* get call-function's static-link */
+	T_exp addr = T_Temp(F_FP());/* frame-point */
+	while (now && (now != def->parent)) { /* until find the level which def the function */
+		F_access sl = F_formals(now->frame)->head;
+		addr = F_Exp(sl, addr);
+		now = now->parent;
+	}
+	return Tr_Ex(addr);
+}
+
+static T_expList Tr_expList_convert(Tr_expList l) {
+	/*trans Tr_expList to T_expList*/
+	T_expList h = NULL, t = NULL;
+	for (; l; l = l->tail) {
+		T_exp tmp = unEx(l->head);
+		if (h) {
+			t->tail = T_ExpList(tmp, NULL);
+			t = t->tail;
+		}
+		else {
+			h = T_ExpList(tmp, NULL);
+			t = h;
+		}
+	}
+	return h;
 }
 
 /*int main(){

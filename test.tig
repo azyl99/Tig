@@ -1,4 +1,4 @@
-let
+/*let
 	type INT = int
 	type INTEGER = int
 	
@@ -24,7 +24,7 @@ in(
 	mytree := tree{key=x, children=li};
 	mytree := tree{key=x, children=nil}
 	
-)end
+)end*/
 
 /************IR*************************/
 
@@ -67,6 +67,17 @@ in
 	for i := 1 to 3
 	do  a := a+1
 end*/
+
+let
+function do_nothing1(a: int, b: string)=
+		do_nothing2(a+1)
+
+function do_nothing2(d: int) =
+		do_nothing1(d, "str")
+
+in
+	do_nothing1(0, "str2")
+end
 
 
 

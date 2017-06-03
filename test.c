@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
  if (argc!=2) {fprintf(stderr,"usage: a.out filename\n"); exit(1);}
  A_exp a_exp= parse(argv[1]);
  struct expty e;
+
  FILE *f1 = fopen("output_syntax.txt", "w");
  pr_exp(f1, a_exp, 0);
  fclose(f1);

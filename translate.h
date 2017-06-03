@@ -60,6 +60,7 @@ Tr_exp Tr_noExp();
 Tr_exp Tr_breakExp(Tr_exp breakk);
 Tr_exp Tr_doneLabel();
 Tr_exp Tr_whileExp(Tr_exp breakk, Tr_exp cond, Tr_exp body);
+Tr_exp Tr_callExp(Temp_label label, Tr_level fun, Tr_level call, Tr_expList l);
 
 Tr_exp Tr_varDec(Tr_exp lval, Tr_exp init);
 Tr_exp Tr_typeDec();

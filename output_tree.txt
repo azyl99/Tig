@@ -1,0 +1,8 @@
+ ESEQ[
+  EXP[
+   CONST 0],
+  CALL[
+   NAME L11,
+    TEMP t100,
+    CONST 0,
+    NAME L14]]

@@ -152,17 +152,32 @@ struct expty transExp(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv,
 		E_enventry x = S_look(venv, a->u.call.func);
 		if (!x || x->kind != E_funEntry) {
 			EM_error(a->pos, "undefined function %s", S_name(a->u.call.func));
-			return expTy(Tr_noExp(), Ty_Int());	// 未定义的函数，默认Ty_Int()
+			return expTy(Tr_noExp(), Ty_Void());	// 未定义的函数，默认Ty_Int()
 		}
 		Ty_tyList tl; A_expList al; int i;
+		Tr_expList head = NULL, tail = NULL;
 		for (tl = x->u.fun.formals,al = a->u.call.args,i=1; al&&tl; al=al->tail,tl=tl->tail,i++) {
 			// 查看各参数类型是否正确
 			struct expty e = transExp(level, breakk, venv, tenv, al->head);
-			if (e.ty->kind != tl->head->kind && !(e.ty->kind == Ty_nil && tl->head->kind == Ty_record))
+			if (!ty_match(e.ty,tl->head))
 				EM_error(a->pos, "assign incompatible type to argument %d of function '%s'", i, S_name(a->u.call.func));
+			if (head) {
+				tail->tail = Tr_ExpList(e.exp,NULL);
+				tail = tail->tail;
+			}
+			else {
+				head= Tr_ExpList(e.exp, NULL);
+				tail = head;
+			}
 		}
 		if (al || tl) {
 			EM_error(a->pos, "formal and actual arguments of function '%s' are not equal", S_name(a->u.call.func));
+		}
+		else {
+			if (x->u.fun.result)
+				return expTy(Tr_callExp(x->u.fun.label, x->u.fun.level, level, head), x->u.fun.result);
+			else
+				return expTy(Tr_callExp(x->u.fun.label, x->u.fun.level, level, head), Ty_Void());
 		}
 		return expTy(Tr_noExp(), x->u.fun.result);
 	}
@@ -469,16 +484,13 @@ Tr_exp transDec(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_dec
 				}
 			}
 			struct expty e = transExp(funcEntry->u.fun.level, breakk, venv, tenv, fd->body);//在这个环境下处理函数体
-			S_endScope(venv);
-			
 			E_enventry x = S_look(venv, fd->name);
 			resultTy = x->u.fun.result;
-			if (resultTy->kind == Ty_void && e.ty->kind != Ty_void)
-				EM_error(fd->pos, "function '%s' require its body of type 'void'", S_name(fd->name));
-			else if (resultTy->kind != e.ty->kind)
-				EM_error(fd->pos, "function '%s' require its body of type '%s'", S_name(fd->name), S_name(fd->result));//建立在有返回值的基础上
-
+			if (!ty_match(resultTy, e.ty))
+				EM_error(fd->pos, "incorrect return type for function  %s", S_name(fd->name));
+			S_endScope(venv);
 		}
+		return Tr_noExp();
 		break;
 	}
 	default:
