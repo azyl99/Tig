@@ -1,10 +1,13 @@
-a.exe: test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn.o parse.o \
-types.o env.o semant.o frame.o translate.o temp.o printtree.o tree.o
-	cc -g test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn.o parse.o \
-types.o env.o semant.o frame.o translate.o temp.o printtree.o tree.o
+a.exe: test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn1.o parse.o \
+types.o env.o semant.o frame.o translate.o temp.o printtree1.o tree.o
+	cc -g test.o y.tab.o lex.yy.o errormsg.o util.o table.o symbol.o absyn.o prabsyn1.o parse.o \
+types.o env.o semant.o frame.o translate.o temp.o printtree1.o tree.o
 
-printtree.o: printtree.c printtree.h
-	cc -g -c printtree.c
+printtree1.o: printtree1.c printtree.h
+	cc -g -c printtree1.c
+
+# printtree.o: printtree.c printtree.h
+	# cc -g -c printtree.c
 
 tree.o: tree.c tree.h temp.h
 	cc -g -c tree.c
@@ -30,8 +33,11 @@ env.o: env.c util.h symbol.h types.h env.h
 types.o: types.c util.h symbol.h types.h
 	cc -g -c types.c
 	
-prabsyn.o: prabsyn.c util.h symbol.h absyn.h
-	cc -g -c prabsyn.c
+prabsyn1.o: prabsyn1.c util.h symbol.h absyn.h
+	cc -g -c prabsyn1.c
+	
+# prabsyn.o: prabsyn1.c util.h symbol.h absyn.h
+	# cc -g -c prabsyn1.c
 	
 parse.o: parse.c errormsg.h util.h symbol.h absyn.h
 	cc -g -c parse.c	
