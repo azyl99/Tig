@@ -41,6 +41,9 @@ struct Tr_exp_ {
 	} u;
 };
 
+extern F_fragList stringFragList;
+extern F_fragList procFragList;
+
 //构建各类表达式的Tiger中间表达式
 Tr_exp Tr_intExp(int);  
 Tr_exp Tr_stringExp(string val);
@@ -65,6 +68,8 @@ Tr_exp Tr_callExp(Temp_label label, Tr_level fun, Tr_level call, Tr_expList l);
 Tr_exp Tr_varDec(Tr_exp lval, Tr_exp init);
 Tr_exp Tr_typeDec();
 Tr_exp Tr_funDec(Tr_expList bodylist);
+
+void Tr_procEntryExit(Tr_level level, Tr_exp body, Tr_accessList formals);
 
 
 #endif

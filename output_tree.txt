@@ -6,3 +6,49 @@
     TEMP t100,
     CONST 0,
     NAME L14]]
+
+StringFragList
+L14 : str2
+L13 : str
+
+ProcFragList
+/****procFrag body*********/
+ EXP[
+  CALL[
+   NAME L11,
+    MEM[
+     BINOP[PLUS,
+      TEMP t100,
+      CONST 0]],
+    MEM[
+     BINOP[PLUS,
+      TEMP t100,
+      CONST 0]],
+    NAME L13]]
+/****procFrag frame*********/
+frame_name:L12
+frame_size:0
+frame_formals:
+	variable_offset:0
+	variable_offset:4
+/****procFrag body*********/
+ EXP[
+  CALL[
+   NAME L12,
+    MEM[
+     BINOP[PLUS,
+      TEMP t100,
+      CONST 0]],
+    BINOP[PLUS,
+     MEM[
+      BINOP[PLUS,
+       TEMP t100,
+       CONST 0]],
+     CONST 1]]]
+/****procFrag frame*********/
+frame_name:L11
+frame_size:0
+frame_formals:
+	variable_offset:0
+	variable_offset:4
+	variable_offset:8

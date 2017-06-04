@@ -3,8 +3,8 @@
 #include "translate.h"
 
 static Tr_level outermost = NULL;
-void Tr_print_access(Tr_access a);
-void Tr_print_level(Tr_level l);
+void Tr_print_access(Tr_access a, FILE *out);
+void Tr_print_level(Tr_level l,FILE *out);
 
 static patchList PatchList(Temp_label *head, patchList tail);
 static void doPatch(patchList tList, Temp_label label);
@@ -88,18 +88,18 @@ Tr_access Tr_allocLocal(Tr_level level, bool escape){
     return ta;
 }
 
-void Tr_print_access(Tr_access a){
+void Tr_print_access(Tr_access a,FILE *out){
     printf("tr_level:%s\n",Temp_labelstring(a->level->name));
-    F_print_access(a->access);
+    F_print_access(a->access,out);
 }
 
-void Tr_print_level(Tr_level l){
+void Tr_print_level(Tr_level l,FILE *out){
     printf("level_name:%s\n",Temp_labelstring(l->name));
     if(l->parent)
         printf("level_parent:%s\n",Temp_labelstring(l->parent->name));
     else
         printf("level_parent:root\n");
-    F_print_frame(l->frame);
+    F_print_frame(l->frame,out);
 
 }
 
@@ -216,13 +216,20 @@ Tr_exp Tr_intExp(int consti) {
 	return Tr_Ex(te);
 }
 
-static F_fragList stringFragList = NULL;
+F_fragList stringFragList = NULL;
 Tr_exp Tr_stringExp(string val) {
 	Temp_label slabel = Temp_newlabel();
 	F_frag fragment = F_StringFrag(slabel, val);
 	stringFragList = F_FragList(fragment, stringFragList);
 	return Tr_Ex(T_Name(slabel));
 }
+
+F_fragList procFragList = NULL;
+void Tr_procEntryExit(Tr_level level, Tr_exp body, Tr_accessList formals) {
+	F_frag procFrag = F_ProcFrag(unNx(body), level->frame);
+	procFragList = F_FragList(procFrag, procFragList);
+}
+
 
 Tr_exp Tr_simpleVar(Tr_access ta, Tr_level tl) {
 	T_exp addr = T_Temp(F_FP());

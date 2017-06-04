@@ -152,6 +152,7 @@ struct expty transExp(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv,
 		E_enventry x = S_look(venv, a->u.call.func);
 		if (!x || x->kind != E_funEntry) {
 			EM_error(a->pos, "undefined function %s", S_name(a->u.call.func));
+		
 			return expTy(Tr_noExp(), Ty_Void());	// 未定义的函数，默认Ty_Int()
 		}
 		Ty_tyList tl; A_expList al; int i;
@@ -488,6 +489,7 @@ Tr_exp transDec(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_dec
 			resultTy = x->u.fun.result;
 			if (!ty_match(resultTy, e.ty))
 				EM_error(fd->pos, "incorrect return type for function  %s", S_name(fd->name));
+			Tr_procEntryExit(x->u.fun.level, e.exp, al);
 			S_endScope(venv);
 		}
 		return Tr_noExp();

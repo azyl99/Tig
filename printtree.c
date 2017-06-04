@@ -7,6 +7,7 @@
 #include "symbol.h"
 #include "temp.h"
 #include "tree.h"
+#include "frame.h"
 #include "printtree.h"
 
 /* local function prototype */
@@ -110,4 +111,23 @@ void printExp(T_exp e, FILE * out) {
 
 void printStm(T_stm s, FILE * out) {
 	pr_stm(out, s, 0);
+}
+
+void print_stringFrag(F_fragList fl, FILE * out) {
+	while (fl) {
+		F_frag f = fl->head;
+		fprintf(out, "%s : %s\n", S_name(f->u.stringg.label), f->u.stringg.str);
+		fl = fl->tail;
+	}
+}
+
+void print_procFrag(F_fragList fl, FILE * out) {
+	while (fl) {
+		F_frag f = fl->head;
+		fprintf(out, "/****procFrag body*********/\n");
+		printStm(f->u.proc.body, out);
+		fprintf(out, "\n/****procFrag frame*********/\n");
+		F_print_frame(f->u.proc.frame,out);
+		fl = fl->tail;
+	}
 }

@@ -117,21 +117,21 @@ F_access F_allocLocal(F_frame f, bool escape){
         return InReg(Temp_newtemp());
 }
 
-void F_print_access(F_access a){
+void F_print_access(F_access a, FILE *out){
     switch(a->kind){
-        case inReg: printf("\tvariable_reg:%d\n",Temp_tempint(a->u.reg));break;
-        case inFrame: printf("\tvariable_offset:%d\n",a->u.offset);break;
-        default: printf("variable not in reg or frame\n");break;
+        case inReg: fprintf(out,"\tvariable_reg:%d\n",Temp_tempint(a->u.reg));break;
+        case inFrame: fprintf(out,"\tvariable_offset:%d\n",a->u.offset);break;
+        default: fprintf(out,"variable not in reg or frame\n");break;
     }
 }
 
-void F_print_frame(F_frame f){
-    printf("frame_name:%s\n",Temp_labelstring(f->name));
-    printf("frame_size:%d\n",f->frame_size);
-    printf("frame_formals:\n");
+void F_print_frame(F_frame f, FILE *out){
+    fprintf(out,"frame_name:%s\n",Temp_labelstring(f->name));
+    fprintf(out,"frame_size:%d\n",f->frame_size);
+    fprintf(out,"frame_formals:\n");
     F_accessList p = NULL;
     for(p = f->formals;p;p = p->tail){
-        F_print_access(p->head);
+        F_print_access(p->head,out);
     }
 }
 

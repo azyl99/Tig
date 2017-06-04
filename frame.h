@@ -20,8 +20,8 @@ Temp_label F_name(F_frame f);       //返回某个栈帧代表的函数的初始地址标号
 F_accessList F_formals(F_frame f);  //返回k个访问的列表(callee视角),解决view shift, 跟目标机调用约定有关
 F_access F_allocLocal(F_frame f, bool escape);  //在栈帧为一个变量分配位置，返回相对于fp的W位移/寄存器名
 
-void F_print_access(F_access a);
-void F_print_frame(F_frame f);
+void F_print_access(F_access a, FILE *out);
+void F_print_frame(F_frame f,FILE *out);
 
 /****IR*****/
 typedef struct F_frag_ *F_frag;

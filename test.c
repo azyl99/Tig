@@ -37,6 +37,13 @@ int main(int argc, char **argv) {
  case Tr_nx:
 	 printStm(e.exp->u.nx, f); break;
  }
+
+ fprintf(f, "\n\nStringFragList\n");
+ print_stringFrag(stringFragList, f);
+
+ fprintf(f, "\nProcFragList\n");
+ print_procFrag(procFragList, f);
+
  fclose(f);
  return 0;
 }
