@@ -4,3 +4,4 @@ a.exe
 lex.yy.c
 *.bak
 output*
+a.exe.stackdump
