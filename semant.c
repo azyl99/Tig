@@ -476,7 +476,7 @@ Tr_exp transDec(Tr_level level, Tr_exp breakk, S_table venv, S_table tenv, A_dec
 			fd = a->head;
 			formalTys = makeFormalTyList(tenv, fd->params); // 耗时，可优化
             E_enventry funcEntry = S_look(venv, fd->name);     //拿到函数的信息
-            Tr_accessList al = Tr_formals(funcEntry->u.fun.level);
+            Tr_accessList al = Tr_formals(funcEntry->u.fun.level)->tail;
 			S_beginScope(venv);
 			{//把定义限制在这个范围内
 				A_fieldList af; Ty_tyList tt;
