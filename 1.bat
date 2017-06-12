@@ -1,7 +1,5 @@
 cd tiger
 make
 
-cd ..
+cd ../tools
 python convert_tree_to_json.py
-
-pause

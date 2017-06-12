@@ -1,7 +1,7 @@
 import json
 import re
 
-input = open("./tiger/output_syntax.txt", "r")
+input = open("../tiger/output_syntax.txt", "r")
 arrStr = input.read()
 
 pattern = re.compile(r'\[([^\[\]]*)')
@@ -20,5 +20,5 @@ arrStr = re.sub(pattern, replace, arrStr)
 
 exec('arr='+arrStr)
 Json = json.dumps(arr[0])
-output = open("./js-tree/output_syntax.json", "w")
+output = open("../js-tree/output_syntax.json", "w")
 output.write(Json)
