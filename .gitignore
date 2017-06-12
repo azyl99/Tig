@@ -1,7 +1,10 @@
-*.o
-y.*
-a.exe
-lex.yy.c
-*.bak
-output*
-a.exe.stackdump
+tiger/*.o
+tiger/y.*
+tiger/a.exe
+tiger/lex.yy.c
+tiger/*.bak
+tiger/output*
+tiger/a.exe.stackdump
+js-tree/pref*
+js-tree/output*
+__pycache__
