@@ -1,24 +1,18 @@
 import json
 import re
+import sys
 
-input = open("../tiger/output_syntax.txt", "r")
-arrStr = input.read()
+input = open("../tiger/"+sys.argv[1]+".txt", "r")
+str = input.read()
 
 pattern = re.compile(r'\[([^\[\]]*)')
-def replace(match):
-	m = match.group(1)
-	return "{'name':'"+m+"','children':["
-arrStr = re.sub(pattern, replace, arrStr)
+str = re.sub(pattern, lambda match: "{'name':'"+match.group(1)+"','children':[", str)
 pattern = re.compile(r']')
-def replace(match):
-	return "]},"
-arrStr = re.sub(pattern, replace, arrStr)
+str = re.sub(pattern, lambda match: "]},", str)
 pattern = re.compile(r",'children':\[\]")
-def replace(match):
-	return ""
-arrStr = re.sub(pattern, replace, arrStr)
+str = re.sub(pattern, lambda match: "", str)
 
-exec('arr='+arrStr)
-Json = json.dumps(arr[0])
-output = open("../js-tree/output_syntax.json", "w")
+exec('a='+str)
+Json = json.dumps(a[0])
+output = open("../js-tree/"+sys.argv[1]+".json", "w")
 output.write(Json)
