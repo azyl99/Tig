@@ -5,6 +5,6 @@ tiger/lex.yy.c
 tiger/*.bak
 tiger/output*
 tiger/a.exe.stackdump
-js-tree/pref*
+js-tree/perf*
 js-tree/output*
 __pycache__
