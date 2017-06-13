@@ -136,9 +136,7 @@ void print_procFrag2(F_fragList fl, char* basename) {
 	while (fl) {
 		F_frag f = fl->head;
 		sprintf(filename, "%s_func%d.txt\0", basename, ++i);
-		puts(filename);
 		FILE* out = fopen(filename, "w");
-		fprintf(out, "\n");
 		printStm(f->u.proc.body, out);
 		fl = fl->tail;
 	}

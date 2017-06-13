@@ -1,6 +1,6 @@
 cd tiger
 make
-a test1.tig
+a test.tig
 cd ../tools
 @echo off
 @echo start convert...
