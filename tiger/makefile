@@ -51,7 +51,7 @@ y.tab.o: y.tab.c
 y.tab.c: tiger.grm
 	bison --yacc -dv tiger.grm
 
-y.tab.h: tiger.grm
+y.tab.h: y.tab.c
 	echo "y.tab.h was created at the same time as y.tab.c"
 
 errormsg.o: errormsg.c errormsg.h util.h

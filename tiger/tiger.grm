@@ -14,10 +14,6 @@ void yyerror(char *s)
 {
  EM_error(EM_tokPos, "%s", s);
 }
-
-int lastPos;
-
-#define YYERROR_VERBOSE
 %}
 
 
@@ -113,7 +109,7 @@ exp:		  simpleVar							{$$ = A_VarExp(EM_tokPos, $1);}
 			// 记录创建
 			| ID LBRACE RBRACE					{$$ = A_RecordExp(EM_tokPos, S_Symbol($1), NULL);}
 			| ID LBRACE efieldList RBRACE		{$$ = A_RecordExp(EM_tokPos, S_Symbol($1), $3);}
-			// 数组创建
+			// 数组创建，和左值 lvalue LBRACK exp RBRACK 冲突！因为只能超前查看一个，所以无法判断！
 			| simpleVar LBRACK exp RBRACK OF exp	%prec STATEMENT {$$ = A_ArrayExp(EM_tokPos, $1->u.simple, $3, $6);}
 			// 语句，定义优先级是因为：末端的exp遇到+-*/【语义上是错的，文法上是对的： _if 1 else 2_ +3 】
 			| IF exp THEN exp 					%prec STATEMENT	{$$ = A_IfExp(EM_tokPos, $2, $4, NULL);}//if (v->u.iff.elsee)
@@ -151,25 +147,18 @@ opexp:		  LPAREN exp RPAREN					{$$ = $2;}		// 与"LPAREN expList RPAREN"冲突�
 			| exp OR exp						{$$ = A_OpExp(EM_tokPos, A_orOp, $1, $3);}
 			| MINUS exp	%prec NEG				{$$ = A_OpExp(EM_tokPos, A_minusOp, A_IntExp(EM_tokPos, 0), $2);}
 			
-decs:		  dec decs_tail						{$$ = A_DecList($1, $2);}
+decs:		dec decs_tail						{$$ = A_DecList($1, $2);}
 
 decs_tail:	  /* empty */						{$$ = NULL;}
 			| dec decs_tail						{$$ = A_DecList($1, $2);}
-			| error decs_tail					{$$=$2;}
-			
+
 dec:		  nametyList						{$$ = A_TypeDec(EM_tokPos, $1);}//tydec
 			| VAR ID ASSIGN exp					{$$ = A_VarDec(EM_tokPos, S_Symbol($2), NULL, $4);}	//vardec
 			| VAR ID COLON ID ASSIGN exp		{$$ = A_VarDec(EM_tokPos, S_Symbol($2), S_Symbol($4), $6);}	//vardec
-			| fundecList						{$$ = A_FunctionDec(EM_tokPos, $1);}
-			// 错误处理
-			| VAR ID error/* 这个错误是可以原谅的 */{yyerrok; yyclearin; } /* $4 */
-			  exp	 							{$$ = A_VarDec(EM_tokPos, S_Symbol($2), NULL, $5);}
-			| VAR ID COLON ID error 			{yyerrok; yyclearin; } /* $6 */
-			  exp								{yyerrok; $$ = A_VarDec(EM_tokPos, S_Symbol($2), S_Symbol($4), $7);}
-
+			| fundecList						{$$ = A_FunctionDec(EM_tokPos, $1);}	  
+			
 nametyList:	  namety /*单条type声明*/			{$$ = A_NametyList($1, NULL);}// 移进/归约冲突，这一条是归约，下一条是移进
 			| namety nametyList					{$$ = A_NametyList($1, $2);}
-			// | error nametyList					{$$ = $2;}
 		
 namety:		  TYPE ID EQ type					{$$ = A_Namety(S_Symbol($2), $4);}
 		
@@ -182,20 +171,20 @@ type:		  ID								{$$ = A_NameTy(EM_tokPos, S_Symbol($1));}
 typefields:	  /* empty */						{$$ = NULL;}
 			| typefield							{$$ = A_FieldList($1, NULL);}
 			| typefield COMMA typefields		{$$ = A_FieldList($1, $3);}
-			// | error COMMA typefields			{$$ = $3;}
 
 typefield:	  ID COLON ID						{$$ = A_Field(EM_tokPos, S_Symbol($1), S_Symbol($3));}
 				
 		
 fundecList:	  fundec 							{$$ = A_FundecList($1, NULL);}// 移进/归约冲突，这一条是归约，下一条是移进
 			| fundec fundecList					{$$ = A_FundecList($1, $2);}
-			// | error fundecList					{$$ = $2;}
 			
 fundec:		  FUNCTION ID LPAREN typefields RPAREN EQ exp			{$$ = A_Fundec(EM_tokPos, S_Symbol($2), $4, NULL, $7);}
 			| FUNCTION ID LPAREN typefields RPAREN COLON ID EQ exp	{$$ = A_Fundec(EM_tokPos, S_Symbol($2), $4, S_Symbol($7), $9);}
 			
 efieldList:	  efield							{$$ = A_EfieldList($1, NULL);}
 			| efield COMMA efieldList			{$$ = A_EfieldList($1, $3);}
-			// | error COMMA efieldList			{$$ =$3;}
 
 efield:		  ID EQ exp							{$$ = A_Efield(S_Symbol($1), $3);}
+
+
+			
