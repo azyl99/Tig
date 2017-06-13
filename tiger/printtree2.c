@@ -121,10 +121,25 @@ void print_stringFrag(F_fragList fl, FILE * out) {
 void print_procFrag(F_fragList fl, FILE * out) {
 	while (fl) {
 		F_frag f = fl->head;
-		fprintf(out, "/****procFrag body*********/\n");
+		// fprintf(out, "/****procFrag body*********/\n");
+		fprintf(out, "\n");
 		printStm(f->u.proc.body, out);
-		fprintf(out, "\n/****procFrag frame*********/\n");
-		F_print_frame(f->u.proc.frame,out);
+		// fprintf(out, "\n/****procFrag frame*********/\n");
+		// F_print_frame(f->u.proc.frame,out);
+		fl = fl->tail;
+	}
+}
+#include <string.h>
+void print_procFrag2(F_fragList fl, char* basename) {
+	char filename[100];
+	int i = 0;
+	while (fl) {
+		F_frag f = fl->head;
+		sprintf(filename, "%s_func%d.txt\0", basename, ++i);
+		puts(filename);
+		FILE* out = fopen(filename, "w");
+		fprintf(out, "\n");
+		printStm(f->u.proc.body, out);
 		fl = fl->tail;
 	}
 }

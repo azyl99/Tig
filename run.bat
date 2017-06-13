@@ -1,4 +1,11 @@
 cd tiger
 make
+a test1.tig
 cd ../tools
-python convert_tree_to_json.py output_syntax
+@echo off
+@echo start convert...
+for %%i in (../tiger/output*.txt) do (
+	python convert_tree_to_json.py %%~ni
+)
+@echo convert finished...
+pause

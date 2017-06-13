@@ -8,6 +8,7 @@ void printExp(T_exp e, FILE * out);
 void printStm(T_stm s, FILE * out);
 void print_stringFrag(F_fragList fl, FILE * out);
 void print_procFrag(F_fragList fl, FILE * out);
+void print_procFrag2(F_fragList fl, char * f);
 
 #endif // !PRINTTREE_H_
 

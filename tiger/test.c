@@ -15,6 +15,8 @@
 
 extern int yyparse(void);
 
+
+
 int main(int argc, char **argv) {
  if (argc!=2) {fprintf(stderr,"usage: a.out filename\n"); exit(1);}
  A_exp a_exp= parse(argv[1]);
@@ -38,11 +40,14 @@ int main(int argc, char **argv) {
 	 printStm(e.exp->u.nx, f); break;
  }
 
- fprintf(f, "\n\nStringFragList\n");
- print_stringFrag(stringFragList, f);
+ // fprintf(f, "\n\nStringFragList\n");
+ // print_stringFrag(stringFragList, f);
 
- fprintf(f, "\nProcFragList\n");
- print_procFrag(procFragList, f);
+ // fprintf(f, "\nProcFragList\n");
+ // print_procFrag(procFragList, f);
+ 
+
+ print_procFrag2(procFragList, "output_tree");
 
  fclose(f);
  return 0;
