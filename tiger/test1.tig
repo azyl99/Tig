@@ -5,6 +5,6 @@ let
 	
 	var b :int =12
 in
-	a ="134;
+	a ="134";
 	b :=3
 end
