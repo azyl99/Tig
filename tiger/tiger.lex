@@ -51,9 +51,9 @@ char *string_buf_ptr;
 <string>"\""			{adjust2(); BEGIN(INITIAL); 
 							*string_buf_ptr = '\0';yylval.sval = String(string_buf); /*创建一个自己的字符串*/ 
 							return STRING;}
-<string>"\n"			{adjust2(); EM_error(EM_tokPos, "unterminated string constant"); 
-							*string_buf_ptr = '\0'; yylval.sval = String(string_buf); 
-							BEGIN(INITIAL);/* 否则接下来每句都会报同样的错 */}
+<string>"\n"			{adjust2(); BEGIN(INITIAL);
+						 EM_error(EM_tokPos, "unterminated string constant"); 
+						}// 否则接下来每句都会报同样的错
 <string>\\[0-9]{1,3}	{adjust2();
         int result;
         (void) sscanf( yytext + 1, "%d", &result );
