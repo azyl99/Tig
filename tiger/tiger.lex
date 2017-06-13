@@ -40,7 +40,7 @@ char *string_buf_ptr;
 
 "/*"					{adjust(); BEGIN(comment);}
 <comment>"*/"			{adjust(); BEGIN(INITIAL);}
-<comment>\n				{adjust(); EM_newline();}
+<comment>"\n"			{adjust(); EM_newline();}
 <comment>.				{adjust();}
 
 "//"					{adjust(); BEGIN(comment2);}
@@ -48,8 +48,12 @@ char *string_buf_ptr;
 <comment2>.				{adjust();}
 
 "\""      				{adjust(); BEGIN(string); string_buf_ptr = string_buf;}
-<string>"\""			{adjust2(); BEGIN(INITIAL); *string_buf_ptr = '\0'; yylval.sval = String(string_buf); /*创建一个自己的字符串*/ return STRING;}
-<string>"\n"			{adjust2(); EM_error(EM_tokPos, "unterminated string constant");}
+<string>"\""			{adjust2(); BEGIN(INITIAL); 
+							*string_buf_ptr = '\0';yylval.sval = String(string_buf); /*创建一个自己的字符串*/ 
+							return STRING;}
+<string>"\n"			{adjust2(); BEGIN(INITIAL);
+						 EM_error(EM_tokPos, "unterminated string constant"); 
+						}// 否则接下来每句都会报同样的错
 <string>\\[0-9]{1,3}	{adjust2();
         int result;
         (void) sscanf( yytext + 1, "%d", &result );
@@ -69,7 +73,7 @@ char *string_buf_ptr;
 		string_buf_ptr += yyleng;
 		}
 
-\n	 		{adjust(); EM_newline(); /* 顺序很重要！匹配不到会有warning */}//continue;
+"\n"	 	{adjust(); EM_newline();/* 顺序很重要！匹配不到会有warning */}//continue;
 [[:space:]]	{adjust();}
 
 ","			{adjust(); return COMMA;}

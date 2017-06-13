@@ -1,0 +1,10 @@
+let
+	type INT = int
+	var a = "1"
+	var 
+	
+	var b :int =12
+in
+	a ="134";
+	b :=3
+end
